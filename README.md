@@ -84,6 +84,39 @@ sudo bash deploy/deploy.sh --install [你的域名]
 
 默认 Nginx 配置（[`deploy/landrop-nginx.conf`](deploy/landrop-nginx.conf)）是一个**纯静态文件服务器**，不包含后端反向代理。后端地址由用户在登录页的「服务器配置」中自行填写。
 
+### Docker 部署
+
+使用 [`Dockerfile`](Dockerfile) 构建镜像，一键启动（默认端口 **3000**）：
+
+```bash
+# 1. 构建镜像
+docker build -t landrop-webui .
+
+# 2. 运行容器
+docker run -d \
+  --name landrop-webui \
+  -p 3000:3000 \
+  landrop-webui
+
+# 3. 打开浏览器访问 http://localhost:3000
+#    在登录页「服务器配置」中填入后端地址即可使用
+```
+
+**自定义端口：**
+
+```bash
+# 使用 -e PORT 环境变量指定容器内部端口
+# 注意 -p 左侧为主机端口，右侧为容器端口（需与 PORT 一致）
+docker run -d \
+  --name landrop-webui \
+  -p 8080:8080 \
+  -e PORT=8080 \
+  landrop-webui
+```
+
+> 提示：`deploy/docker-entrypoint.sh` 使用 `envsubst` 在容器启动时动态渲染 nginx 配置，
+> 因此 `PORT` 环境变量在 `docker run` 时传入即可生效，无需修改配置文件。
+
 ### 纯静态托管
 
 将 `dist/` 目录下的文件部署到任何静态托管平台（Nginx、Apache、S3、CDN 等）。
@@ -129,6 +162,7 @@ bash deploy/deploy.sh --clean
 | Node.js | >= 18 | 构建 |
 | npm | >= 9 | 包管理 |
 | Nginx（可选） | >= 1.20 | 生产部署 |
+| Docker（可选） | >= 24.0 | 容器化部署 |
 
 ## 项目结构
 
