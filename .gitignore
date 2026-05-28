@@ -1,0 +1,47 @@
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物 ----
+dist/
+dist.tar.gz
+
+# ---- 环境变量 ----
+.env
+.env.local
+.env.*.local
+
+# ---- 日志 ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- TypeScript ----
+tsconfig.tsbuildinfo
+
+# ---- 私钥 / 敏感文件（绝不提交！） ----
+*.pem
+*.key
+*.priv
+
+# ---- 编辑器 / IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ---- 操作系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 测试覆盖率 ----
+coverage/
+
+# ---- 其他临时文件 ----
+*.tmp

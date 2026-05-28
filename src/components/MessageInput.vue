@@ -1,0 +1,492 @@
+<script setup lang="ts">
+import { ref, computed, watch, nextTick } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
+import type { RoomMember, ClientMessage } from '@/types/chat'
+
+const props = defineProps<{
+  replyTarget?: { messageId: string; preview: string } | null
+}>()
+
+const emit = defineEmits<{
+  send: [text: string, replyTo?: string]
+  clearReply: []
+  sendImage: [files: FileList | File[]]
+  sendFile: [files: FileList | File[]]
+}>()
+
+const chatStore = useChatStore()
+const authStore = useAuthStore()
+
+// 检测当前用户是否被禁言
+// 依赖 memberList.length 确保 roomMembers Map 变化时重新计算
+const _mutedTrigger = computed(() => chatStore.memberList.length)
+const isMuted = computed(() => {
+  void _mutedTrigger.value
+  if (!chatStore.currentRoomId || !authStore.userId) {
+    return false
+  }
+  const self = chatStore.roomMembers.get(authStore.userId)
+  // 服务端可能返回 true/false(boolean) 或 0/1(number)
+  const mv = (self as any)?.muted
+  const muted = mv === true || mv === 1
+  return muted
+})
+
+const messageText = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+// @mention
+const showMention = ref(false)
+const mentionQuery = ref('')
+const mentionCursorPos = ref(0)
+const activeMentionIndex = ref(0)
+
+const filteredMembers = computed(() => {
+  const members = Array.from(chatStore.roomMembers.values())
+  if (!mentionQuery.value) return members
+  const q = mentionQuery.value.toLowerCase()
+  return members.filter(
+    (m) =>
+      m.display_name?.toLowerCase().includes(q) ||
+      m.user_id.toLowerCase().includes(q),
+  )
+})
+
+// 检测 @ 触发
+function handleInput(e: Event) {
+  const target = e.target as HTMLTextAreaElement
+  const cursorPos = target.selectionStart || 0
+  const textBefore = messageText.value.slice(0, cursorPos)
+
+  // 查找最后一个 @
+  const atIndex = textBefore.lastIndexOf('@')
+  if (atIndex >= 0 && (atIndex === 0 || textBefore[atIndex - 1] === ' ' || textBefore[atIndex - 1] === '\n')) {
+    const query = textBefore.slice(atIndex + 1)
+    // 如果查询包含空格则关闭
+    if (query.includes(' ') || query.includes('\n')) {
+      showMention.value = false
+    } else {
+      mentionQuery.value = query
+      mentionCursorPos.value = cursorPos
+      showMention.value = true
+      activeMentionIndex.value = 0
+    }
+  } else {
+    showMention.value = false
+  }
+}
+
+function selectMention(member: RoomMember) {
+  const textBefore = messageText.value.slice(0, mentionCursorPos.value - mentionQuery.value.length - 1)
+  const textAfter = messageText.value.slice(mentionCursorPos.value)
+  const mentionText = member.display_name || member.user_id
+  messageText.value = `${textBefore}@${mentionText} ${textAfter}`
+  showMention.value = false
+
+  nextTick(() => {
+    if (textareaRef.value) {
+      const newPos = textBefore.length + mentionText.length + 2
+      textareaRef.value.setSelectionRange(newPos, newPos)
+      textareaRef.value.focus()
+    }
+  })
+}
+
+function onMentionKeydown(e: KeyboardEvent) {
+  if (!showMention.value) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeMentionIndex.value = Math.min(activeMentionIndex.value + 1, filteredMembers.value.length - 1)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeMentionIndex.value = Math.max(activeMentionIndex.value - 1, 0)
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault()
+    if (filteredMembers.value[activeMentionIndex.value]) {
+      selectMention(filteredMembers.value[activeMentionIndex.value])
+    }
+  } else if (e.key === 'Escape') {
+    showMention.value = false
+  }
+}
+
+// 被回复的原消息（用于回复栏显示发送者）
+const replyMessage = computed<ClientMessage | undefined>(() => {
+  const target = props.replyTarget
+  if (!target || !target.messageId) return undefined
+  return chatStore.messages.find(m => m.message_id === target.messageId)
+})
+
+const replySenderName = computed(() => {
+  if (!replyMessage.value) return ''
+  const from = replyMessage.value.from
+  const member = chatStore.roomMembers.get(from)
+  // 服务端现已返回 username 字段，优先使用 username，其次 display_name，最后回退到 from
+  return member?.username || member?.display_name || from
+})
+
+// 发送
+function handleSend() {
+  const text = messageText.value.trim()
+  if (!text) return
+  const replyTo = props.replyTarget?.messageId
+  emit('send', text, replyTo)
+  emit('clearReply')
+  messageText.value = ''
+  // 重置 textarea 高度
+  if (textareaRef.value) {
+    textareaRef.value.style.height = 'auto'
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (showMention.value) {
+    onMentionKeydown(e)
+    return
+  }
+  // Enter 发送，Shift+Enter 换行
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleSend()
+  }
+}
+
+function triggerFileUpload() {
+  fileInput.value?.click()
+}
+
+function triggerImageUpload() {
+  imageInput.value?.click()
+}
+
+function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files && input.files.length > 0) {
+    emit('sendFile', input.files)
+    input.value = ''
+  }
+}
+
+function onImageSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files && input.files.length > 0) {
+    emit('sendImage', input.files)
+    input.value = ''
+  }
+}
+
+// 自动调整 textarea 高度
+function autoResize() {
+  if (textareaRef.value) {
+    textareaRef.value.style.height = 'auto'
+    textareaRef.value.style.height = `${Math.min(textareaRef.value.scrollHeight, 120)}px`
+  }
+}
+</script>
+
+<template>
+  <div class="input-area">
+    <!-- @mention 下拉 -->
+    <Teleport to="body">
+      <div
+        v-if="showMention && filteredMembers.length > 0"
+        class="mention-dropdown"
+        :style="{
+          position: 'fixed',
+          bottom: '80px',
+          left: '24px',
+          right: '24px',
+        }"
+      >
+        <div
+          v-for="(member, i) in filteredMembers"
+          :key="member.user_id"
+          class="mention-item"
+          :class="{ active: i === activeMentionIndex }"
+          @click="selectMention(member)"
+          @mouseenter="activeMentionIndex = i"
+        >
+          <span class="mention-name">{{ member.display_name || member.user_id }}</span>
+          <span class="mention-id">@{{ member.user_id }}</span>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 图片按钮 -->
+    <button
+      type="button"
+      class="btn-icon-input"
+      title="发送图片"
+      :disabled="!chatStore.currentRoomId || isMuted"
+      @click="triggerImageUpload"
+    >
+      🖼️
+    </button>
+
+    <!-- 文件按钮 -->
+    <button
+      type="button"
+      class="btn-icon-input"
+      title="发送文件"
+      :disabled="!chatStore.currentRoomId || isMuted"
+      @click="triggerFileUpload"
+    >
+      📎
+    </button>
+
+    <!-- 隐藏的 file input -->
+    <input
+      ref="fileInput"
+      type="file"
+      class="hidden-input"
+      multiple
+      @change="onFileSelected"
+    />
+    <input
+      ref="imageInput"
+      type="file"
+      accept="image/*"
+      class="hidden-input"
+      multiple
+      @change="onImageSelected"
+    />
+
+    <!-- 回复提示栏 -->
+    <div v-if="replyTarget" class="reply-bar">
+      <div class="reply-info">
+        <span class="reply-label">回复</span>
+        <span class="reply-sender">{{ replySenderName }}</span>
+        <span class="reply-preview">{{ replyTarget.preview || '(图片/文件)' }}</span>
+      </div>
+      <button class="reply-close" @click="emit('clearReply')">✕</button>
+    </div>
+
+    <!-- 禁言提示 -->
+    <div v-if="isMuted" class="muted-bar">
+      🔇 你已被禁言
+    </div>
+
+    <!-- 文本输入 -->
+    <textarea
+      ref="textareaRef"
+      v-model="messageText"
+      class="msg-input"
+      :placeholder="isMuted ? '你已被禁言，无法发送消息' : '输入消息... @ 提及成员'"
+      rows="1"
+      :disabled="!chatStore.currentRoomId || isMuted"
+      @input="handleInput; autoResize()"
+      @keydown="handleKeydown"
+    ></textarea>
+
+    <!-- 发送按钮 -->
+    <button
+      type="button"
+      class="btn-send"
+      :disabled="!messageText.trim() || !chatStore.currentRoomId || isMuted"
+      @click="handleSend"
+    >
+      发送
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.input-area {
+  padding: 16px 24px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  gap: 8px;
+  background: #fafafa;
+  position: relative;
+  align-items: flex-end;
+}
+
+.btn-icon-input {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-icon-input:hover:not(:disabled) {
+  background: #f0f2f5;
+  border-color: #ccc;
+}
+
+.btn-icon-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.msg-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  max-height: 120px;
+  min-height: 40px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.msg-input:focus {
+  border-color: #0f3460;
+}
+
+.btn-send {
+  padding: 10px 24px;
+  background: #0f3460;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  height: 40px;
+}
+
+.btn-send:hover:not(:disabled) {
+  background: #1a5276;
+}
+
+.btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 回复提示栏 */
+.reply-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: #eef3f8;
+  border-bottom: 1px solid #d0dbe8;
+  transform: translateY(-100%);
+  gap: 8px;
+}
+
+.reply-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.reply-label {
+  color: #0f3460;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reply-sender {
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.reply-preview {
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #999;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+.reply-close:hover {
+  color: #333;
+}
+
+/* 禁言提示栏 */
+.muted-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 16px;
+  background: #fff0f0;
+  color: #cc4444;
+  font-size: 13px;
+  text-align: center;
+  border-bottom: 1px solid #ffd5d5;
+  transform: translateY(-100%);
+}
+
+/* mention 下拉 - 全局样式 */
+:global(.mention-dropdown) {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+:global(.mention-item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+:global(.mention-item:hover),
+:global(.mention-item.active) {
+  background: #eef3f8;
+}
+
+:global(.mention-name) {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.mention-id) {
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+</style>
