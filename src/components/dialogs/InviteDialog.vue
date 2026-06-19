@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps<{
   visible: boolean
@@ -10,21 +10,47 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const USER_ID_RE = /^[A-Za-z0-9]{12}$/
 const inviteUserId = ref('')
 const inviting = ref(false)
+const validationError = ref('')
 
-async function handleInvite() {
-  const ids = inviteUserId.value
+// 解析已输入的 userId 列表（尚未验证）
+const parsedIds = computed(() =>
+  inviteUserId.value
     .split(/[,，\s]+/)
     .map((s) => s.trim())
     .filter(Boolean)
+)
+
+// 检查是否有格式不合法的 userId
+const invalidIds = computed(() =>
+  parsedIds.value.filter((id) => !USER_ID_RE.test(id))
+)
+
+function handleInvite() {
+  validationError.value = ''
+  const ids = parsedIds.value
   if (ids.length === 0) return
+
+  // 客户端格式校验
+  const bad = invalidIds.value
+  if (bad.length > 0) {
+    validationError.value = `⚠️ userId 格式不合法（需 12 位字母数字）：${bad.join(', ')}`
+    return
+  }
 
   inviting.value = true
   emit('invite', ids)
   inviteUserId.value = ''
   inviting.value = false
 }
+
+// 弹窗关闭时清除错误
+import { watch } from 'vue'
+watch(() => props.visible, (v) => {
+  if (!v) validationError.value = ''
+})
 </script>
 
 <template>
@@ -38,8 +64,13 @@ async function handleInvite() {
           type="text"
           placeholder="用户ID1, 用户ID2, ..."
           class="modal-input"
+          :class="{ 'input-error': invalidIds.length > 0 }"
           @keyup.enter="handleInvite"
         />
+        <div v-if="validationError" class="validation-error">{{ validationError }}</div>
+        <div v-else-if="invalidIds.length > 0" class="validation-hint">
+          ⚠️ 格式不正确（需 12 位字母数字）：{{ invalidIds.join(', ') }}
+        </div>
         <div class="modal-actions">
           <button class="btn-sm btn-cancel" @click="emit('close')">取消</button>
           <button
@@ -104,6 +135,32 @@ async function handleInvite() {
 
 .modal-input:focus {
   border-color: #0f3460;
+}
+
+.modal-input.input-error {
+  border-color: #e74c3c;
+}
+
+.validation-error,
+.validation-hint {
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.validation-error {
+  background: #fff2f0;
+  color: #e74c3c;
+  border: 1px solid #ffccc7;
+}
+
+.validation-hint {
+  background: #fffbe6;
+  color: #ad8b00;
+  border: 1px solid #ffe58f;
 }
 
 .modal-actions {

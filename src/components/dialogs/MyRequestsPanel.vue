@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { fetchInvitesToMe, fetchMyJoinRequests } from '@/composables/useApi'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket, onWsEvent } from '@/composables/useWebSocket'
 import type { InviteRecord, JoinRequestRecord } from '@/types/chat'
 
 const emit = defineEmits<{
@@ -12,6 +12,9 @@ const loading = ref(false)
 const myInvites = ref<(InviteRecord & { room_name?: string })[]>([])
 const myJoinRequests = ref<(JoinRequestRecord & { room_name?: string })[]>([])
 const actionMsg = ref('')
+
+// 用户点击了接受但邀请尚未审批通过的集合（invite_id → true）
+const pendingAcceptSet = reactive<Set<string>>(new Set())
 
 const ws = useWebSocket()
 
@@ -25,45 +28,58 @@ async function loadData() {
     ])
     myInvites.value = Array.isArray(invites) ? invites : []
     myJoinRequests.value = Array.isArray(requests) ? requests : []
-  } catch (e) {
+  } catch (e: any) {
+    const msg = e?.message || e?.error || '未知错误'
     console.warn('[MyRequestsPanel] 加载失败:', e)
+    alert('加载邀请/申请列表失败: ' + msg)
   } finally {
     loading.value = false
   }
 }
 
 async function handleAcceptInvite(inviteId: string, roomId: string) {
-  try {
-    ws.inviteReply(roomId, inviteId, true)
-    actionMsg.value = '✅ 已接受邀请'
-    // 从本地列表移除
-    myInvites.value = myInvites.value.filter((i) => i.id !== inviteId)
-  } catch {
-    actionMsg.value = '操作失败'
+  const sent = ws.inviteReply(roomId, inviteId, true)
+  if (!sent) {
+    alert('❌ 未连接到服务器，请检查网络后重试')
+    return
   }
+  // 乐观标记为等待处理：若邀请已审批则直接加入房间，若未审批服务端会返回 event_reject
+  pendingAcceptSet.add(inviteId)
+  actionMsg.value = '⏳ 已发送接受请求，等待服务端处理...'
 }
 
 async function handleRejectInvite(inviteId: string, roomId: string) {
-  try {
-    ws.inviteReply(roomId, inviteId, false)
-    actionMsg.value = '✅ 已拒绝邀请'
-    myInvites.value = myInvites.value.filter((i) => i.id !== inviteId)
-  } catch {
-    actionMsg.value = '操作失败'
+  const sent = ws.inviteReply(roomId, inviteId, false)
+  if (!sent) {
+    alert('❌ 未连接到服务器，请检查网络后重试')
+    return
   }
+  actionMsg.value = '✅ 已拒绝邀请'
+  myInvites.value = myInvites.value.filter((i) => i.id !== inviteId)
+}
+
+// 判断邀请状态
+function isApproved(status?: string): boolean {
+  return status === 'approved' || status === '1'
+}
+function isRejected(status?: string): boolean {
+  return status === 'rejected' || status === '2'
+}
+function isPending(status?: string): boolean {
+  return !status || status === 'pending' || status === '0'
 }
 
 function getStatusLabel(status?: string): string {
-  if (!status || status === 'pending') return '⏳ 等待处理'
-  if (status === 'approved') return '✅ 已批准'
-  if (status === 'rejected') return '❌ 已拒绝'
+  if (!status || status === 'pending' || status === '0') return '⏳ 等待审批'
+  if (isApproved(status)) return '✅ 已批准'
+  if (isRejected(status)) return '❌ 已拒绝'
   return status || '未知'
 }
 
 function getStatusClass(status?: string): string {
-  if (!status || status === 'pending') return 'status-pending'
-  if (status === 'approved') return 'status-approved'
-  if (status === 'rejected') return 'status-rejected'
+  if (!status || status === 'pending' || status === '0') return 'status-pending'
+  if (isApproved(status)) return 'status-approved'
+  if (isRejected(status)) return 'status-rejected'
   return ''
 }
 
@@ -74,13 +90,58 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
+// ---- WebSocket 事件监听 ----
+
+// 监听服务端拒绝事件（如邀请未审批时用户尝试接受）
+const unsubReject = onWsEvent('event_reject', (data: any) => {
+  if (data.event_type === 'room_invite_reply') {
+    if (data.reason === 'invite_not_approved_yet') {
+      actionMsg.value = '⏳ 该邀请尚未通过管理员审批，请等待'
+      // 邀请保持在列表中，显示"等待审批"状态
+    } else {
+      alert(`❌ 邀请操作失败: ${data.reason || '未知原因'}`)
+    }
+  }
+})
+
+// 监听房间加入事件：成功接受邀请后会收到 room_joined
+const unsubJoined = onWsEvent('room_joined', (data: any) => {
+  if (data.room_id) {
+    // 清除对应房间的待处理邀请
+    myInvites.value = myInvites.value.filter((i) => {
+      if (i.room_id === data.room_id) {
+        pendingAcceptSet.delete(i.id)
+        return false
+      }
+      return true
+    })
+    actionMsg.value = '✅ 已加入房间'
+  }
+})
+
 onMounted(() => {
   loadData()
   document.addEventListener('click', handleClickOutside)
 })
 
+// 管理员拒绝了邀请 → 从列表移除
+const unsubInviteRejected = onWsEvent('invite_rejected', (data: any) => {
+  myInvites.value = myInvites.value.filter((i) => i.room_id !== data.room_id)
+  actionMsg.value = `❌ 房间 ${data.room_id} 的邀请已被管理员拒绝`
+})
+
+// 加入申请被拒绝 → 从列表移除
+const unsubJoinRejected = onWsEvent('join_rejected', (data: any) => {
+  myJoinRequests.value = myJoinRequests.value.filter((r) => r.room_id !== data.room_id)
+  actionMsg.value = `❌ 房间 ${data.room_id} 的加入申请已被管理员拒绝`
+})
+
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  unsubReject()
+  unsubJoined()
+  unsubInviteRejected()
+  unsubJoinRejected()
 })
 </script>
 
@@ -111,12 +172,16 @@ onUnmounted(() => {
             <span class="item-from">来自 {{ inv.inviter_id || '未知' }}</span>
           </div>
           <div class="item-right">
-            <span :class="['status-badge', getStatusClass(inv.status)]">
+            <span v-if="pendingAcceptSet.has(inv.id)" class="status-badge status-pending">
+              ⏳ 等待审批
+            </span>
+            <span v-else :class="['status-badge', getStatusClass(inv.status)]">
               {{ getStatusLabel(inv.status) }}
             </span>
-            <!-- 待处理的邀请显示接受/拒绝按钮 -->
-            <div v-if="!inv.status || inv.status === 'pending'" class="item-actions">
+            <!-- 所有非已拒绝的邀请都可操作：接受 / 拒绝 -->
+            <div v-if="!isRejected(inv.status)" class="item-actions">
               <button
+                v-if="!pendingAcceptSet.has(inv.id)"
                 class="btn-xs-accept"
                 @click="handleAcceptInvite(inv.id, inv.room_id)"
                 title="接受"

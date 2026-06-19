@@ -126,6 +126,14 @@ async function handleRejectJoin(requestId: string) {
 // 管理操作（双通道：HTTP → WS fallback）
 async function handleKick(userId: string) {
   actionMsg.value = ''
+  // PUBLIC 房间踢出 = 注销账号（不可恢复），需要二次确认
+  const targetMember = members.value.find(m => m.user_id === userId)
+  const targetName = targetMember?.username || targetMember?.display_name || userId
+  if (chatStore.currentRoomId === 'PUBLIC') {
+    if (!confirm(`⚠️ 在 PUBLIC 房间踢出用户「${targetName}」将导致其账号被注销（不可恢复）！\n\n确定继续？`)) {
+      return
+    }
+  }
   try {
     await kickMember(chatStore.currentRoomId, userId)
     actionMsg.value = '已踢出'
@@ -334,7 +342,7 @@ onMounted(() => {
       <span>⚙️ 房间管理</span>
       <div class="panel-header-actions">
         <button
-          v-if="isCreator"
+          v-if="isCreator && chatStore.currentRoomId !== 'PUBLIC'"
           class="btn-danger-sm"
           @click="emit('dissolve')"
         >

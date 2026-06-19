@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { loginChallenge, loginVerify } from '@/composables/useApi'
@@ -14,7 +14,7 @@ const keyFileName = ref('')
 
 // ---- 服务器配置 ----
 const STORAGE_KEY_REMEMBER = 'landrop_remember_server'
-const showServerConfig = ref(false)
+const showServerConfig = ref(true)
 const httpUrl = ref('')
 const wsUrlVal = ref('')
 const rememberServer = ref(localStorage.getItem(STORAGE_KEY_REMEMBER) !== 'false')
@@ -28,6 +28,23 @@ onMounted(() => {
   if (authStore.serverUrl) {
     httpUrl.value = authStore.serverUrl
     wsUrlVal.value = authStore.wsUrl
+  } else {
+    httpUrl.value = 'http://'
+  }
+})
+
+// 输入 HTTP 地址自动填充 WS 地址
+watch(httpUrl, (val) => {
+  if (!val) {
+    wsUrlVal.value = ''
+    return
+  }
+  try {
+    const url = new URL(val)
+    const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    wsUrlVal.value = `${wsProtocol}//${url.host}`
+  } catch {
+    // URL 不合法时不自动填充
   }
 })
 
@@ -233,12 +250,14 @@ function handleSubmit() {
               <label>WebSocket 地址</label>
               <input v-model="wsUrlVal" type="text" class="input" placeholder="留空则使用 Vite 开发代理" />
             </div>
-            <label class="remember-checkbox">
-              <input type="checkbox" v-model="rememberServer" />
-              <span>记住服务器地址</span>
-            </label>
           </div>
         </div>
+
+        <!-- 记住服务器地址 -->
+        <label class="remember-checkbox">
+          <input type="checkbox" v-model="rememberServer" />
+          <span>记住服务器地址</span>
+        </label>
 
         <!-- 错误提示 -->
         <div v-if="errorMsg" class="error-msg">
@@ -422,7 +441,7 @@ function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
+  margin-bottom: 16px;
   font-size: 13px;
   color: #555;
   cursor: pointer;

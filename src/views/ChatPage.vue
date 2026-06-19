@@ -122,13 +122,13 @@ onWsEvent('join_request', (data: any) => {
   }
 })
 
-/** 邀请通知 → 受邀人收到（仅 member 邀请时触发，admin 邀请直接加入） */
+/** 邀请通知 → 受邀人收到（admin+ 邀请自动审批，member 邀请待审批） */
 onWsEvent('invite_notify', (data: any) => {
   const { event_id, room_id, inviter_id } = data
   // 发送 event_ack 确认收到
   ws.sendEventAck(event_id)
-  // 新流程：受邀人不能直接接受/拒绝，需等待 Admin 审批
-  alert(`🔔 你被 ${inviter_id} 邀请加入房间 ${room_id}，请等待管理员审批`)
+  // v1.7: 受邀人可在侧边栏「我的申请 / 邀请」中查看并接受/拒绝
+  alert(`🔔 你被 ${inviter_id} 邀请加入房间 ${room_id}，请在侧边栏「我的申请 / 邀请」中处理`)
 })
 
 /** 加入申请已被处理 → 其他管理员收到 */
@@ -140,6 +140,24 @@ onWsEvent('join_request_handled', (data: any) => {
   if (room_id === chatStore.currentRoomId) {
     loadJoinRequests()
   }
+})
+
+/** 邀请被管理员拒绝 → 受邀人收到 */
+onWsEvent('invite_rejected', (data: any) => {
+  const { room_id, reviewed_by } = data
+  alert(`❌ 你对房间 ${room_id} 的邀请已被管理员 ${reviewed_by || '未知'} 拒绝`)
+})
+
+/** 受邀人拒绝了邀请 → 邀请人收到 */
+onWsEvent('invite_declined', (data: any) => {
+  const { room_id, invitee_id } = data
+  alert(`❌ 用户 ${invitee_id || '未知'} 拒绝了加入房间 ${room_id} 的邀请`)
+})
+
+/** 加入申请被管理员拒绝 → 申请人收到 */
+onWsEvent('join_rejected', (data: any) => {
+  const { room_id, reviewed_by } = data
+  alert(`❌ 你对房间 ${room_id} 的加入申请已被管理员 ${reviewed_by || '未知'} 拒绝`)
 })
 
 // 切换房间时加载成员列表
@@ -562,13 +580,37 @@ async function handleDemote(userId: string) {
 }
 
 async function handleInvite(userIds: string[]) {
-  // 新流程：改用 HTTP API 发送邀请（admin 直接加入，member 创建待审批记录）
   try {
     const result = await inviteUsersApi(chatStore.currentRoomId, userIds)
-    const statuses = result.invites.map((i) => `${i.user_id}: ${i.status}`).join('\n')
-    alert(`✉️ 邀请结果：\n${statuses}`)
-  } catch (e) {
-    alert(`邀请失败：${e}`)
+
+    const okList: string[] = []
+    const errList: string[] = []
+    const STATUS_LABELS: Record<string, string> = {
+      ok: '✅ 已邀请',
+      room_not_found: '❌ 房间不存在',
+      inviter_not_member: '❌ 你不在该房间',
+      already_member: '⚠️ 已是成员',
+      already_invited: '⚠️ 已有待审批邀请',
+      invalid_user_id: '❌ userId 格式不合法（需 12 位字母数字）',
+    }
+
+    for (const item of result.invites) {
+      const label = STATUS_LABELS[item.status] || `❓ ${item.status}`
+      if (item.status === 'ok') {
+        okList.push(`${item.user_id}: ${label}`)
+      } else {
+        errList.push(`${item.user_id}: ${label}`)
+      }
+    }
+
+    let msg = ''
+    if (okList.length > 0) msg += `已成功邀请 ${okList.length} 人`
+    if (errList.length > 0) {
+      msg += (msg ? '\n\n' : '') + `以下邀请未成功：\n${errList.join('\n')}`
+    }
+    alert(msg || '未发送任何邀请')
+  } catch (e: any) {
+    alert(`邀请失败：${e?.message || e}`)
   }
   showInviteDialog.value = false
 }

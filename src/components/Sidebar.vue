@@ -139,6 +139,7 @@ function handleLeaveCurrentRoom() {
         />
       </div>
       <button
+        v-if="chatStore.currentRoomId && chatStore.currentRoomId !== 'PUBLIC'"
         class="btn-action btn-my"
         @click="handleLeaveCurrentRoom"
         :disabled="!chatStore.currentRoomId"
