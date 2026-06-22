@@ -212,6 +212,16 @@ watch(
 const unsubMention = onWsEvent('mention', (data: any) => {
   if (!data || data.room_id !== chatStore.currentRoomId) return
   if (data.from === authStore.userId || !data.message_id) return
+  // 仅当当前用户真正被 @ 时才闪烁 / 入跳转列表
+  let elems: any[] = data.elements
+  if (typeof elems === 'string') {
+    try { elems = JSON.parse(elems) } catch { elems = [] }
+  }
+  if (!Array.isArray(elems)) elems = []
+  const isTargeted = elems.some(
+    (el: any) => el.type === 'mention' && (el.user_id === authStore.userId || el.user_id === 'ALL'),
+  )
+  if (!isTargeted) return
   flashQueue.value = new Set([...flashQueue.value, data.message_id])
   // 同时纳入本次会话的跳转列表
   if (!mentionJumpList.value.includes(data.message_id)) {
