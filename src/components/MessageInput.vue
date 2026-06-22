@@ -59,9 +59,9 @@ const canMentionAll = computed(() => {
 
 const filteredMembers = computed(() => {
   const members = Array.from(chatStore.roomMembers.values())
-  // 排除已经 @ 过的用户（不可重复提及）
+  // 排除已 @ 过的用户 + 自己（不可 @自己）
   const mentionedIds = new Set(activeMentions.value.map(m => m.userId))
-  let filtered = members.filter(m => !mentionedIds.has(m.user_id))
+  let filtered = members.filter(m => m.user_id !== authStore.userId && !mentionedIds.has(m.user_id))
   if (mentionQuery.value) {
     const q = mentionQuery.value.toLowerCase()
     filtered = filtered.filter(

@@ -43,9 +43,9 @@ function handleJoinRoom() {
 }
 
 function selectRoom(roomId: string, roomName: string) {
-  // 进入房间时清除 [有人@我] 标签
+  // 进入房间时仅清除 [有人@我] 标签，保留 @消息供 FAB 跳转
   if (chatStore.unreadMentionRoomIds.has(roomId)) {
-    chatStore.clearUnreadMentions(roomId)
+    chatStore.clearMentionBadge(roomId)
   }
   chatStore.switchRoom(roomId, roomName)
 }

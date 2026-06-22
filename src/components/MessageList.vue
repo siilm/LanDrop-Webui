@@ -45,6 +45,23 @@ function scrollToBottom(smooth = false) {
 
 function restoreScrollPosition() {
   if (!messagesContainer.value || !chatStore.currentRoomId) return
+
+  // 侧栏 @通知跳转 (v2.4)：检测到 pending 标记，优先跳到 @消息
+  const pendingJump = chatStore.consumeMentionJump()
+  if (pendingJump && pendingJump === chatStore.currentRoomId) {
+    // 消息已加载，直接跳到第一个 @消息
+    nextTick(() => {
+      // 先滚到底部确保 DOM 完全就绪
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+      nextTick(() => {
+        jumpToNextMention()
+      })
+    })
+    return
+  }
+
   if (chatStore.scrollBehavior === 'lastPosition') {
     const saved = chatStore.roomScrollPositions[chatStore.currentRoomId]
     if (saved != null && saved > 0) {

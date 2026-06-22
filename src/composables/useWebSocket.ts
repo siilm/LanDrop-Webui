@@ -147,6 +147,7 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
 
 function handleMessage(data: any) {
   const chatStore = useChatStore()
+  const authStore = useAuthStore()
 
   if (data.created_at != null && data.timestamp == null) {
     data.timestamp = Number(data.created_at)
@@ -202,14 +203,14 @@ function handleMessage(data: any) {
     /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
     case 'mention': {
       const info = handleChatLikeMessage(data, chatStore)
-      // 记录未读 @提及 (v2.3)，用于侧栏 [有人@我] 标签与跳转
-      if (data.message_id && data.room_id) {
+      // 记录未读 @提及 (v2.3)，排除自己发送的
+      if (data.message_id && data.room_id && data.from !== authStore.userId) {
         chatStore.addUnreadMention(data.room_id, data.message_id)
       }
       // 通过事件总线通知 ChatPage，使其发送 message_read
       emitWsEvent('mention', data)
-      // 若 @提及来自非当前房间 → 侧栏通知
-      if (info && info.room_id !== chatStore.currentRoomId) {
+      // 若 @提及来自非当前房间且非自己发送 → 侧栏通知
+      if (info && info.room_id !== chatStore.currentRoomId && data.from !== authStore.userId) {
         emitWsEvent('mention_alert', data)
       }
       break

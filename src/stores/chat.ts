@@ -337,10 +337,15 @@ export const useChatStore = defineStore('chat', () => {
     unreadMentionMessages.value = msgs
   }
 
-  function clearUnreadMentions(roomId: string) {
+  /** 仅清除侧栏 [有人@我] 标签，保留 @消息列表供 FAB 跳转使用 */
+  function clearMentionBadge(roomId: string) {
     const ids = new Set(unreadMentionRoomIds.value)
     ids.delete(roomId)
     unreadMentionRoomIds.value = ids
+  }
+
+  function clearUnreadMentions(roomId: string) {
+    clearMentionBadge(roomId)
 
     const msgs = { ...unreadMentionMessages.value }
     delete msgs[roomId]
@@ -349,6 +354,19 @@ export const useChatStore = defineStore('chat', () => {
     const idx = { ...mentionJumpIndex.value }
     delete idx[roomId]
     mentionJumpIndex.value = idx
+  }
+
+  /** 侧栏 @通知点击 → 标记待跳转房间，MessageList 加载完消息后自动跳转 */
+  const pendingMentionJump = ref<string | null>(null)
+
+  function requestMentionJump(roomId: string) {
+    pendingMentionJump.value = roomId
+  }
+
+  function consumeMentionJump(): string | null {
+    const v = pendingMentionJump.value
+    pendingMentionJump.value = null
+    return v
   }
 
   /** 获取下一个要跳转的 @提及 messageId，返回 null 表示已遍历完 */
@@ -446,9 +464,13 @@ export const useChatStore = defineStore('chat', () => {
     removeJoinRequest,
     // @提及追踪
     addUnreadMention,
+    clearMentionBadge,
     clearUnreadMentions,
     getNextMentionJump,
     resetMentionJump,
+    pendingMentionJump,
+    requestMentionJump,
+    consumeMentionJump,
     // 重置
     reset,
   }

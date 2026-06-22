@@ -64,6 +64,8 @@ function dismissMentionAlert() {
 
 function goToMentionRoom(roomId: string) {
   const room = chatStore.rooms.find(r => r.roomId === roomId)
+  // 标记待跳转：MessageList 加载完消息后自动跳到 @消息
+  chatStore.requestMentionJump(roomId)
   chatStore.switchRoom(roomId, room?.roomName || roomId)
   dismissMentionAlert()
 }
