@@ -1,6 +1,7 @@
 import { onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { avatarBlobCache } from '@/utils/BlobCache'
 import type {
   RoomInfo,
   MessageElement,
@@ -339,6 +340,17 @@ function handleMessage(data: any) {
     case 'join_rejected': {
       // 管理员拒绝了加入申请 → 通知申请人
       emitWsEvent('join_rejected', data)
+      if (data.message_id) {
+        sendJson({ type: 'ack', message_id: data.message_id, status: 'ok' })
+      }
+      break
+    }
+
+    /** 头像变更广播 (v2.2)：best-effort，清除指定用户的本地缓存 */
+    case 'avatar_changed': {
+      if (data.user_id) {
+        avatarBlobCache.delete(data.user_id)
+      }
       if (data.message_id) {
         sendJson({ type: 'ack', message_id: data.message_id, status: 'ok' })
       }

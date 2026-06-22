@@ -180,7 +180,7 @@ import { avatarPersistentCache, filePersistentCache } from './IndexedDbCache'
 /** 全局单例：头像缓存 */
 export const avatarBlobCache = new BlobCache({
   maxEntries: 500,
-  defaultTtl: 60 * 60 * 1000,
+  defaultTtl: 24 * 60 * 60 * 1000,
   persistentStore: avatarPersistentCache,
   persistentTtl: 24 * 60 * 60 * 1000,
 })
