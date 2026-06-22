@@ -221,7 +221,7 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 /** 通过 user_id 查找成员显示名 (v2.2)，用于渲染 @提及标签 */
 function getMemberNameById(userId: string): string {
   const member = chatStore.roomMembers.get(userId)
-  return member?.display_name || member?.username || ''
+  return member?.username || member?.display_name || ''
 }
 </script>
 

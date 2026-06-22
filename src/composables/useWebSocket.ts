@@ -116,18 +116,9 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
       elements = []
     }
   }
-  const matched = chatStore.confirmByEcho({
-    message_id: data.message_id,
-    from: data.from,
-    display_name: data.display_name,
-    elements,
-    content: data.content,
-    file: data.file,
-    timestamp: data.timestamp,
-    room_id: data.room_id,
-  })
-  if (!matched) {
-    chatStore.pushMessage({
+  // 收信人必须在目标房间内才将消息推入该房间的消息列表
+  if (data.room_id && data.room_id === chatStore.currentRoomId) {
+    const matched = chatStore.confirmByEcho({
       message_id: data.message_id,
       from: data.from,
       display_name: data.display_name,
@@ -137,8 +128,21 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
       timestamp: data.timestamp,
       room_id: data.room_id,
     })
+    if (!matched) {
+      chatStore.pushMessage({
+        message_id: data.message_id,
+        from: data.from,
+        display_name: data.display_name,
+        elements,
+        content: data.content,
+        file: data.file,
+        timestamp: data.timestamp,
+        room_id: data.room_id,
+      })
+    }
   }
   sendJson({ type: 'ack', message_id: data.message_id, status: 'ok' })
+  return { elements, room_id: data.room_id as string, from: data.from as string, display_name: data.display_name as string, content: data.content as string }
 }
 
 function handleMessage(data: any) {
@@ -197,9 +201,13 @@ function handleMessage(data: any) {
 
     /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
     case 'mention': {
-      handleChatLikeMessage(data, chatStore)
+      const info = handleChatLikeMessage(data, chatStore)
       // 通过事件总线通知 ChatPage，使其发送 message_read
       emitWsEvent('mention', data)
+      // 若 @提及来自非当前房间 → 侧栏通知
+      if (info && info.room_id !== chatStore.currentRoomId) {
+        emitWsEvent('mention_alert', data)
+      }
       break
     }
 

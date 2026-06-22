@@ -227,6 +227,10 @@ onWsEvent('room_demote', () => {
   }
 })
 
+// 创建 / 加入房间后立即刷新房间列表
+onWsEvent('room_created', () => { refreshRooms() })
+onWsEvent('room_joined', () => { refreshRooms() })
+
 // ======================== 房间操作 ========================
 
 async function refreshRooms() {

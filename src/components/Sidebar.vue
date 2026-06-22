@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { fetchRoomMembers } from '@/composables/useApi'
 import { avatarBlobCache, fileBlobCache } from '@/utils/BlobCache'
 import { getBaseUrl } from '@/composables/useApi'
 import { useTheme } from '@/composables/useTheme'
+import { onWsEvent } from '@/composables/useWebSocket'
 import RoomList from './RoomList.vue'
 import MyRequestsPanel from './dialogs/MyRequestsPanel.vue'
 
@@ -51,6 +52,47 @@ async function handleUploadAvatar() {
 }
 
 const showMyRequests = ref(false)
+
+// 跨房间 @提及通知 (v2.3)
+const mentionAlert = ref<{ roomId: string; roomName: string; from: string; preview: string } | null>(null)
+let mentionAlertTimer: ReturnType<typeof setTimeout> | undefined
+
+function dismissMentionAlert() {
+  mentionAlert.value = null
+  if (mentionAlertTimer) { clearTimeout(mentionAlertTimer); mentionAlertTimer = undefined }
+}
+
+function goToMentionRoom(roomId: string) {
+  const room = chatStore.rooms.find(r => r.roomId === roomId)
+  chatStore.switchRoom(roomId, room?.roomName || roomId)
+  dismissMentionAlert()
+}
+
+const unsubMentionAlert = onWsEvent('mention_alert', (data: any) => {
+  // 提取发送者与被 @ 的成员名（从 elements 中找 mention 条目）
+  const senderName = data.display_name || data.from
+  let previewText = data.content || ''
+  if (!previewText && data.elements) {
+    const textEl = (Array.isArray(data.elements) ? data.elements : []).find(
+      (e: any) => e.type === 'text'
+    ) as { content?: string } | undefined
+    if (textEl?.content) previewText = textEl.content
+  }
+  const roomName = chatStore.rooms.find(r => r.roomId === data.room_id)?.roomName || data.room_id
+  mentionAlert.value = {
+    roomId: data.room_id,
+    roomName,
+    from: senderName,
+    preview: previewText.length > 40 ? previewText.slice(0, 40) + '…' : previewText,
+  }
+  // 8 秒后自动消退
+  if (mentionAlertTimer) clearTimeout(mentionAlertTimer)
+  mentionAlertTimer = setTimeout(() => { mentionAlert.value = null }, 8000)
+})
+
+onUnmounted(() => {
+  unsubMentionAlert()
+})
 
 function handleToggleMyRequests() {
   showMyRequests.value = !showMyRequests.value
@@ -123,6 +165,22 @@ function handleLeaveCurrentRoom() {
       <span class="dot"></span>
       {{ chatStore.wsConnected ? '已连接' : chatStore.wsConnecting ? '连接中...' : '未连接' }}
     </div>
+
+    <!-- 跨房间 @提及通知 (v2.3) -->
+    <Transition name="alert-slide">
+      <div
+        v-if="mentionAlert"
+        class="mention-alert"
+        @click="goToMentionRoom(mentionAlert.roomId)"
+      >
+        <span class="mention-alert-icon">@</span>
+        <span class="mention-alert-body">
+          <span class="mention-alert-title">有人@我</span>
+          <span class="mention-alert-sender">{{ mentionAlert.from }}：@{{ mentionAlert.preview }}</span>
+        </span>
+        <button class="mention-alert-close" @click.stop="dismissMentionAlert">×</button>
+      </div>
+    </Transition>
 
     <!-- 侧边栏操作 -->
     <div class="sidebar-actions">
@@ -422,6 +480,98 @@ function handleLeaveCurrentRoom() {
   0% { box-shadow: 0 0 0 0 var(--success-border); }
   70% { box-shadow: 0 0 0 5px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* 跨房间 @提及通知横幅 */
+.mention-alert {
+  margin: 4px 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-hover);
+  color: var(--side-text);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.18s ease, transform 0.15s ease;
+}
+
+.mention-alert:hover {
+  background: var(--accent-soft-hover);
+  transform: translateX(3px);
+}
+
+.mention-alert-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mention-alert-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mention-alert-title {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--accent-text);
+}
+
+.mention-alert-sender {
+  font-size: 11px;
+  color: var(--side-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-alert-close {
+  background: none;
+  border: none;
+  color: var(--side-text-dim);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.mention-alert-close:hover {
+  color: var(--side-text);
+  transform: scale(1.2);
+}
+
+/* 通知出入动画 */
+.alert-slide-enter-active {
+  transition: opacity 0.28s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+}
+.alert-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.22s var(--ease-in-out);
+}
+.alert-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+.alert-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 
 .my-section {
