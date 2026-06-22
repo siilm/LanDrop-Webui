@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { fetchRoomMessages } from '@/composables/useApi'
+import { onWsEvent } from '@/composables/useWebSocket'
 import MessageBubble from './MessageBubble.vue'
 import type { ClientMessage, MessageElement } from '@/types/chat'
 
@@ -23,6 +24,18 @@ const newMessageCount = ref(0)
 /** 保存滚动位置的防抖定时器 */
 let savePosTimer: ReturnType<typeof setTimeout> | undefined
 
+// ---- @提及会话状态 (v2.4) ----
+// 进房时从 store 快照一次，并立即清空 store，使「读过即清」——
+// 再次进入房间不再重复出现 FAB；本次会话内仍可用快照跳转。
+/** 本次会话可跳转的 @消息 id（最新在前） */
+const mentionJumpList = ref<string[]>([])
+/** 已跳转到的索引 */
+const mentionJumpIdx = ref(0)
+/** 等待「进入视口时闪烁」的 @消息 id 集合 */
+const flashQueue = ref<Set<string>>(new Set())
+/** 视口可见性观察器，用于在 @气泡进入屏幕时触发闪烁 */
+let viewObserver: IntersectionObserver | null = null
+
 // ---- 滚动到底部 ----
 
 function scrollToBottom(smooth = false) {
@@ -41,45 +54,78 @@ function scrollToBottom(smooth = false) {
   })
 }
 
-// ---- 滚动位置记忆 (v2.4) ----
+// ---- 气泡闪烁 ----
 
-function flashUnreadMentions() {
-  if (!chatStore.currentRoomId) return
-  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
-  if (!msgs || msgs.length === 0) return
-  // 为每个未读 @消息气泡添加闪烁，依次延迟产生波浪效果
-  msgs.forEach((mid, i) => {
-    setTimeout(() => {
-      const el = document.getElementById('msg-' + mid)
-      if (el) {
-        el.classList.add('msg-flash')
-        setTimeout(() => el.classList.remove('msg-flash'), 1700)
+function flashEl(el: HTMLElement) {
+  // 重新触发动画：先移除再强制重排再添加
+  el.classList.remove('msg-flash')
+  void el.offsetWidth
+  el.classList.add('msg-flash')
+  setTimeout(() => el.classList.remove('msg-flash'), 1700)
+}
+
+function flashMessage(messageId: string) {
+  const el = document.getElementById('msg-' + messageId)
+  if (el) flashEl(el)
+}
+
+// ---- 视口可见性观察：@气泡进入屏幕时闪烁 (v2.4) ----
+
+function setupObserver() {
+  if (!messagesContainer.value) return
+  viewObserver?.disconnect()
+  viewObserver = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue
+        const mid = (e.target as HTMLElement).id.replace(/^msg-/, '')
+        if (flashQueue.value.has(mid)) {
+          flashEl(e.target as HTMLElement)
+          flashQueue.value.delete(mid)
+        }
       }
-    }, i * 120)
+    },
+    { root: messagesContainer.value, threshold: 0.55 },
+  )
+  observeBubbles()
+}
+
+function observeBubbles() {
+  if (!viewObserver || !messagesContainer.value) return
+  messagesContainer.value.querySelectorAll('.message-item').forEach((el) => {
+    viewObserver!.observe(el)
   })
 }
+
+// ---- 进房时快照 @提及（读过即清，避免重进重复出现）----
+
+function captureMentionsForRoom() {
+  const rid = chatStore.currentRoomId
+  if (!rid) return
+  const stored = chatStore.unreadMentionMessages[rid] || []
+  mentionJumpList.value = [...stored]
+  mentionJumpIdx.value = 0
+  flashQueue.value = new Set(stored)
+  // 立即清空 store 未读，使下次进入该房间不再重复展示
+  if (stored.length > 0) chatStore.clearUnreadMentions(rid)
+}
+
+// ---- 滚动位置记忆 (v2.4) ----
 
 function restoreScrollPosition() {
   if (!messagesContainer.value || !chatStore.currentRoomId) return
 
-  // 侧栏 @通知跳转 (v2.4)：检测到 pending 标记，优先跳到 @消息
+  // 侧栏 @通知跳转：检测到 pending 标记，优先跳到第一条 @消息
   const pendingJump = chatStore.consumeMentionJump()
   if (pendingJump && pendingJump === chatStore.currentRoomId) {
-    // 消息已加载，直接跳到第一个 @消息
     nextTick(() => {
-      // 先滚到底部确保 DOM 完全就绪
       if (messagesContainer.value) {
         messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
       }
-      nextTick(() => {
-        jumpToNextMention()
-      })
+      nextTick(() => jumpToNextMention())
     })
     return
   }
-
-  // 进入房间时闪烁未读 @消息气泡 (v2.4)
-  flashUnreadMentions()
 
   if (chatStore.scrollBehavior === 'lastPosition') {
     const saved = chatStore.roomScrollPositions[chatStore.currentRoomId]
@@ -93,7 +139,7 @@ function restoreScrollPosition() {
       return
     }
   }
-  // 默认回到底部
+  // 默认回到底部（@气泡可见时由 IntersectionObserver 触发闪烁）
   scrollToBottom()
 }
 
@@ -104,38 +150,25 @@ function scrollToMessage(messageId: string) {
     const el = document.getElementById('msg-' + messageId)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // 高亮闪烁
-      el.classList.add('msg-flash')
-      setTimeout(() => el.classList.remove('msg-flash'), 1600)
+      flashEl(el)
+      flashQueue.value.delete(messageId)
     }
   })
 }
 
-// ---- @提及跳转 (v2.3) ----
+// ---- @提及跳转 (会话快照) ----
 
-/** 当前房间是否有可跳转的 @提及 */
-const hasMentionJumps = computed(() => {
-  if (!chatStore.currentRoomId) return false
-  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
-  return msgs && msgs.length > 0
-})
+const hasMentionJumps = computed(() => mentionJumpList.value.length > 0)
 
-/** 剩余未跳转的 @提及数 */
-const remainingMentionCount = computed(() => {
-  if (!chatStore.currentRoomId) return 0
-  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
-  if (!msgs) return 0
-  const cur = chatStore.mentionJumpIndex[chatStore.currentRoomId] ?? 0
-  return Math.max(0, msgs.length - cur)
-})
+const remainingMentionCount = computed(() =>
+  Math.max(0, mentionJumpList.value.length - mentionJumpIdx.value),
+)
 
 function jumpToNextMention() {
-  if (!chatStore.currentRoomId) return
-  const result = chatStore.getNextMentionJump(chatStore.currentRoomId)
-  if (result) {
-    scrollToMessage(result.messageId)
-  }
-  // 如果已经遍历完所有 @，getNextMentionJump 返回 null，按钮会自动隐藏
+  if (mentionJumpIdx.value >= mentionJumpList.value.length) return
+  const mid = mentionJumpList.value[mentionJumpIdx.value]
+  mentionJumpIdx.value++
+  scrollToMessage(mid)
 }
 
 // ---- 消息监听 ----
@@ -148,8 +181,22 @@ watch(
     } else {
       newMessageCount.value++
     }
+    // 新气泡渲染后重新挂观察，使新到达的 @消息可被闪烁
+    nextTick(() => observeBubbles())
   },
 )
+
+// 当前房间收到 @提及 → 即时闪烁（消息进入视口时由观察器触发）
+const unsubMention = onWsEvent('mention', (data: any) => {
+  if (!data || data.room_id !== chatStore.currentRoomId) return
+  if (data.from === authStore.userId || !data.message_id) return
+  flashQueue.value = new Set([...flashQueue.value, data.message_id])
+  // 同时纳入本次会话的跳转列表
+  if (!mentionJumpList.value.includes(data.message_id)) {
+    mentionJumpList.value = [data.message_id, ...mentionJumpList.value]
+  }
+  nextTick(() => observeBubbles())
+})
 
 watch(
   () => chatStore.currentRoomId,
@@ -224,6 +271,9 @@ async function loadInitialMessages() {
     shouldAutoScroll.value = false
     chatStore.setMessages(res.messages)
     await nextTick()
+    // 先快照 @提及（并清空 store），再挂观察器与定位
+    captureMentionsForRoom()
+    setupObserver()
     restoreScrollPosition()
     if (res.messages.length < 50) {
       chatStore.hasMoreHistory = false
@@ -244,6 +294,17 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  // 首屏可能已通过 immediate watch 加载，确保观察器挂载
+  nextTick(() => setupObserver())
+})
+
+onUnmounted(() => {
+  viewObserver?.disconnect()
+  unsubMention()
+  clearTimeout(savePosTimer)
+})
 </script>
 
 <template>

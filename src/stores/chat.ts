@@ -180,10 +180,15 @@ export const useChatStore = defineStore('chat', () => {
           pendingConfirmations.delete(clientId)
           const idx = messages.findIndex((m) => m._clientId === clientId)
           if (idx >= 0) {
-            // 若服务端 echo 缺少 elements，保留本地 elements（防止回复等元素丢失）
+            // 若服务端 echo 缺少（或空）elements，保留本地 elements，
+            // 防止回复/@提及等元素丢失导致气泡空白（重载后才正常）
             const merged: ClientMessage = { ...serverMsg, _status: 'sent', _clientId: undefined }
-            if (!serverMsg.elements && local.elements) {
+            if ((!serverMsg.elements || serverMsg.elements.length === 0) && local.elements && local.elements.length > 0) {
               merged.elements = local.elements
+            }
+            // content 同理回退，确保至少有可渲染内容
+            if (!merged.content && local.content) {
+              merged.content = local.content
             }
             messages[idx] = merged
           }

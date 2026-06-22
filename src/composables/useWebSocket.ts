@@ -203,14 +203,17 @@ function handleMessage(data: any) {
     /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
     case 'mention': {
       const info = handleChatLikeMessage(data, chatStore)
-      // 记录未读 @提及 (v2.3)，排除自己发送的
-      if (data.message_id && data.room_id && data.from !== authStore.userId) {
+      const isSelf = data.from === authStore.userId
+      const isOtherRoom = data.room_id !== chatStore.currentRoomId
+      // 非当前房间的 @提及 → 记录未读（侧栏标签 + 进房 FAB）；
+      // 当前房间的 @提及由 MessageList 监听 'mention' 事件做即时闪烁，不计未读
+      if (data.message_id && data.room_id && !isSelf && isOtherRoom) {
         chatStore.addUnreadMention(data.room_id, data.message_id)
       }
-      // 通过事件总线通知 ChatPage，使其发送 message_read
+      // 通过事件总线通知 ChatPage（发 message_read）与 MessageList（即时闪烁）
       emitWsEvent('mention', data)
-      // 若 @提及来自非当前房间且非自己发送 → 侧栏通知
-      if (info && info.room_id !== chatStore.currentRoomId && data.from !== authStore.userId) {
+      // 非当前房间且非自己 → 侧栏横幅通知
+      if (info && isOtherRoom && !isSelf) {
         emitWsEvent('mention_alert', data)
       }
       break

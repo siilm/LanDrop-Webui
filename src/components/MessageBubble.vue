@@ -311,7 +311,7 @@ function jumpToReplySource(messageId: string) {
               class="reply-jump-btn"
               title="跳转到原消息"
               @click.stop="jumpToReplySource(el.message_id)"
-            >↩</button>
+            >↑</button>
             <div class="reply-sender-line">回复 <strong>@{{ getReplyInfo(el).senderName || el.message_id }}</strong></div>
             <div class="reply-text-line">{{ getReplyInfo(el).previewText || '[回复的消息]' }}</div>
           </div>
@@ -575,7 +575,7 @@ function jumpToReplySource(messageId: string) {
 .reply-ref {
   position: relative;
   display: block;
-  padding: 6px 28px 6px 10px;
+  padding: 7px 44px 7px 11px;
   margin-bottom: 6px;
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
@@ -586,28 +586,40 @@ function jumpToReplySource(messageId: string) {
 
 .reply-jump-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: 13px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  color: #fff;
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.6;
-  transition: opacity 0.15s ease, transform 0.2s var(--ease-bounce), background 0.15s ease;
+  box-shadow: 0 2px 8px var(--accent-glow);
+  transition: transform 0.22s var(--ease-bounce), box-shadow 0.2s ease;
 }
 
 .reply-jump-btn:hover {
-  opacity: 1;
-  transform: scale(1.15);
-  background: var(--accent-soft-hover);
+  transform: translateY(-50%) scale(1.18);
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.reply-jump-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* 自己消息（紫色气泡）中的跳转按钮改用浅底，保证对比 */
+.message-item.self .reply-jump-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--brand);
+  box-shadow: none;
 }
 
 .reply-sender-line {
