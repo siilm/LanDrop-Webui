@@ -164,6 +164,22 @@ onWsEvent('join_rejected', (data: any) => {
   alert(`❌ 你对房间 ${room_id} 的加入申请已被管理员 ${reviewed_by || '未知'} 拒绝`)
 })
 
+// ---- 保证送达消息已读回执 (v2.2) ----
+
+/** @提及推送 → 回发 message_read 停止服务端对该用户的重发 */
+onWsEvent('mention', (data: any) => {
+  if (data.message_id && data.room_id) {
+    ws.sendMessageRead(data.message_id, data.room_id)
+  }
+})
+
+/** 公告推送 → 回发 message_read 停止服务端对该用户的重发 */
+onWsEvent('announce', (data: any) => {
+  if (data.message_id && data.room_id) {
+    ws.sendMessageRead(data.message_id, data.room_id)
+  }
+})
+
 // 切换房间时加载成员列表
 watch(
   () => chatStore.currentRoomId,
@@ -291,10 +307,16 @@ async function loadRoomMembers() {
 
 // ======================== 消息操作 ========================
 
-function handleSendMessage(text: string, replyTo?: string) {
+function handleSendMessage(text: string, replyTo?: string, mentionUserIds?: string[]) {
   if (!chatStore.currentRoomId || !text.trim()) return
 
   const elements: MessageElement[] = []
+  // @提及元素 (v2.2) — 排在文本元素之前
+  if (mentionUserIds && mentionUserIds.length > 0) {
+    for (const uid of mentionUserIds) {
+      elements.push({ type: 'mention', user_id: uid })
+    }
+  }
   if (replyTo) {
     const originalMsg = chatStore.messages.find(m => m.message_id === replyTo)
     // 尝试从 content 或 elements 中提取预览文本

@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  send: [text: string, replyTo?: string]
+  send: [text: string, replyTo?: string, mentionUserIds?: string[]]
   clearReply: []
   sendImage: [files: FileList | File[]]
   sendFile: [files: FileList | File[]]
@@ -43,6 +43,16 @@ const showMention = ref(false)
 const mentionQuery = ref('')
 const mentionCursorPos = ref(0)
 const activeMentionIndex = ref(0)
+/** 当前消息中通过下拉菜单选中的 @提及 user_id 集合 (v2.2) */
+const activeMentionUserIds = ref<Set<string>>(new Set())
+
+/** 当前用户是否可 @全体（需房间 role ≥ 1） */
+const canMentionAll = computed(() => {
+  if (!chatStore.currentRoomId || !authStore.userId) return false
+  const self = chatStore.roomMembers.get(authStore.userId)
+  const role = self ? parseInt(self.role) : 0
+  return role >= 1
+})
 
 const filteredMembers = computed(() => {
   const members = Array.from(chatStore.roomMembers.values())
@@ -85,10 +95,29 @@ function selectMention(member: RoomMember) {
   const mentionText = member.display_name || member.user_id
   messageText.value = `${textBefore}@${mentionText} ${textAfter}`
   showMention.value = false
+  // 记录该 @提及 (v2.2)
+  activeMentionUserIds.value = new Set([...activeMentionUserIds.value, member.user_id])
 
   nextTick(() => {
     if (textareaRef.value) {
       const newPos = textBefore.length + mentionText.length + 2
+      textareaRef.value.setSelectionRange(newPos, newPos)
+      textareaRef.value.focus()
+    }
+  })
+}
+
+/** 选择 @全体成员 (v2.2) */
+function selectMentionAll() {
+  const textBefore = messageText.value.slice(0, mentionCursorPos.value - mentionQuery.value.length - 1)
+  const textAfter = messageText.value.slice(mentionCursorPos.value)
+  messageText.value = `${textBefore}@全体成员 ${textAfter}`
+  showMention.value = false
+  activeMentionUserIds.value = new Set([...activeMentionUserIds.value, 'ALL'])
+
+  nextTick(() => {
+    if (textareaRef.value) {
+      const newPos = textBefore.length + 6 // '@全体成员 '
       textareaRef.value.setSelectionRange(newPos, newPos)
       textareaRef.value.focus()
     }
@@ -133,9 +162,13 @@ function handleSend() {
   const text = messageText.value.trim()
   if (!text) return
   const replyTo = props.replyTarget?.messageId
-  emit('send', text, replyTo)
+  const mentionIds = activeMentionUserIds.value.size > 0
+    ? [...activeMentionUserIds.value]
+    : undefined
+  emit('send', text, replyTo, mentionIds)
   emit('clearReply')
   messageText.value = ''
+  activeMentionUserIds.value = new Set()
   // 重置 textarea 高度
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
@@ -192,7 +225,7 @@ function autoResize() {
     <!-- @mention 下拉 -->
     <Teleport to="body">
       <div
-        v-if="showMention && filteredMembers.length > 0"
+        v-if="showMention && (filteredMembers.length > 0 || canMentionAll)"
         class="mention-dropdown"
         :style="{
           position: 'fixed',
@@ -201,6 +234,17 @@ function autoResize() {
           right: '24px',
         }"
       >
+        <!-- @全体成员 (v2.2)：需 role≥1，查询匹配 "all"/"全体" 或无查询时显示 -->
+        <div
+          v-if="canMentionAll && (mentionQuery === '' || 'all'.startsWith(mentionQuery.toLowerCase()) || '全体成员'.includes(mentionQuery))"
+          class="mention-item mention-item--all"
+          :class="{ active: activeMentionIndex === 0 && filteredMembers.length === 0 }"
+          @click="selectMentionAll"
+          @mouseenter="activeMentionIndex = -1"
+        >
+          <span class="mention-name">📢 全体成员</span>
+          <span class="mention-id">@all</span>
+        </div>
         <div
           v-for="(member, i) in filteredMembers"
           :key="member.user_id"
@@ -507,6 +551,17 @@ function autoResize() {
   cursor: pointer;
   border-radius: var(--radius-xs);
   transition: background 0.15s ease;
+}
+
+:global(.mention-item--all) {
+  background: var(--warning-bg);
+  border-bottom: 1px solid var(--warning-border);
+  margin-bottom: 2px;
+}
+
+:global(.mention-item--all:hover),
+:global(.mention-item--all.active) {
+  background: var(--warning-border);
 }
 
 :global(.mention-item:hover),

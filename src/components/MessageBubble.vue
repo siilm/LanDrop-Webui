@@ -217,6 +217,12 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
   const senderName = member?.username || member?.display_name || from
   return { senderName, previewText: text }
 }
+
+/** 通过 user_id 查找成员显示名 (v2.2)，用于渲染 @提及标签 */
+function getMemberNameById(userId: string): string {
+  const member = chatStore.roomMembers.get(userId)
+  return member?.display_name || member?.username || ''
+}
 </script>
 
 <template>
@@ -292,6 +298,13 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
             <div class="reply-sender-line">回复 <strong>@{{ getReplyInfo(el).senderName }}</strong></div>
             <div class="reply-text-line">{{ getReplyInfo(el).previewText || '(图片/文件)' }}</div>
           </div>
+
+          <!-- @提及 (v2.2) -->
+          <span
+            v-else-if="el.type === 'mention'"
+            class="mention-tag"
+            :class="{ 'mention-all': el.user_id === 'ALL' }"
+          >{{ el.user_id === 'ALL' ? '@全体成员' : '@' + (getMemberNameById(el.user_id) || el.user_id) }}</span>
 
           <!-- 图片（picture 类型） -->
           <div v-else-if="el.type === 'picture'" class="image-wrapper">
@@ -490,6 +503,35 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 
 .message-item.self .image-name {
   color: rgba(255, 255, 255, 0.65);
+}
+
+/* @提及标签 (v2.2) */
+.mention-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  margin-right: 2px;
+  vertical-align: baseline;
+  transition: background 0.2s ease;
+}
+
+.mention-tag.mention-all {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.message-item.self .mention-tag {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.message-item.self .mention-tag.mention-all {
+  background: rgba(247, 185, 85, 0.25);
+  color: #ffe5b0;
 }
 
 .file-link {

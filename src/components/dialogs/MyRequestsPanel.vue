@@ -65,9 +65,6 @@ function isApproved(status?: string): boolean {
 function isRejected(status?: string): boolean {
   return status === 'rejected' || status === '2'
 }
-function isPending(status?: string): boolean {
-  return !status || status === 'pending' || status === '0'
-}
 
 function getStatusLabel(status?: string): string {
   if (!status || status === 'pending' || status === '0') return '⏳ 等待审批'
@@ -222,7 +219,7 @@ onUnmounted(() => {
 
 <style scoped>
 .my-requests-panel {
-  background: var(--surface-solid);
+  background: var(--side-bg);
   color: var(--side-text);
   border: 1px solid var(--side-border);
   border-radius: var(--radius-md);

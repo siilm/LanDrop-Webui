@@ -106,6 +106,41 @@ function sendJson(obj: any): boolean {
 
 // ---- 消息处理（模块级） ----
 
+/** 处理类 chat_message 入站帧（chat_message / mention / announce）的公共逻辑 */
+function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatStore>) {
+  let elements: MessageElement[] = []
+  if (data.elements) {
+    try {
+      elements = typeof data.elements === 'string' ? JSON.parse(data.elements) : data.elements
+    } catch {
+      elements = []
+    }
+  }
+  const matched = chatStore.confirmByEcho({
+    message_id: data.message_id,
+    from: data.from,
+    display_name: data.display_name,
+    elements,
+    content: data.content,
+    file: data.file,
+    timestamp: data.timestamp,
+    room_id: data.room_id,
+  })
+  if (!matched) {
+    chatStore.pushMessage({
+      message_id: data.message_id,
+      from: data.from,
+      display_name: data.display_name,
+      elements,
+      content: data.content,
+      file: data.file,
+      timestamp: data.timestamp,
+      room_id: data.room_id,
+    })
+  }
+  sendJson({ type: 'ack', message_id: data.message_id, status: 'ok' })
+}
+
 function handleMessage(data: any) {
   const chatStore = useChatStore()
 
@@ -156,38 +191,23 @@ function handleMessage(data: any) {
     }
 
     case 'chat_message': {
-      const msg = data as WsChatMessage
-      let elements: MessageElement[] = []
-      if (msg.elements) {
-        try {
-          elements = typeof msg.elements === 'string' ? JSON.parse(msg.elements) : msg.elements
-        } catch {
-          elements = []
-        }
-      }
-      const matched = chatStore.confirmByEcho({
-        message_id: msg.message_id,
-        from: msg.from,
-        display_name: msg.display_name,
-        elements,
-        content: msg.content,
-        file: msg.file,
-        timestamp: msg.timestamp,
-        room_id: msg.room_id,
-      })
-      if (!matched) {
-        chatStore.pushMessage({
-          message_id: msg.message_id,
-          from: msg.from,
-          display_name: msg.display_name,
-          elements,
-          content: msg.content,
-          file: msg.file,
-          timestamp: msg.timestamp,
-          room_id: msg.room_id,
-        })
-      }
-      sendJson({ type: 'ack', message_id: msg.message_id, status: 'ok' })
+      handleChatLikeMessage(data, chatStore)
+      break
+    }
+
+    /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
+    case 'mention': {
+      handleChatLikeMessage(data, chatStore)
+      // 通过事件总线通知 ChatPage，使其发送 message_read
+      emitWsEvent('mention', data)
+      break
+    }
+
+    /** 公告推送 (v2.2) — 结构与 chat_message 相同，type="announce" */
+    case 'announce': {
+      handleChatLikeMessage(data, chatStore)
+      // 通过事件总线通知 ChatPage，使其发送 message_read
+      emitWsEvent('announce', data)
       break
     }
 
@@ -488,6 +508,11 @@ export function useWebSocket() {
     return sendJson({ type: 'event_ack', event_id: eventId })
   }
 
+  /** 已读回执 (v2.2)：标记本人对该保证送达消息（公告/@全体/@单个）已读，停止重发 */
+  function sendMessageRead(messageId: string, roomId: string) {
+    return sendJson({ type: 'message_read', message_id: messageId, room_id: roomId })
+  }
+
   // ---- 清理（仅当最后一个组件卸载时断开） ----
   onUnmounted(() => {
     refCount--
@@ -517,5 +542,6 @@ export function useWebSocket() {
     inviteReply,
     deleteMessage,
     sendEventAck,
+    sendMessageRead,
   }
 }

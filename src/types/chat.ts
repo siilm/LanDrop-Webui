@@ -26,6 +26,12 @@ export interface ReplyElement {
   preview?: string | { from: string; text: string }
 }
 
+/** @提及元素 (v2.2)：user_id="ALL" 为@全体（需 role≥1），否则为@单个成员 */
+export interface MentionElement {
+  type: 'mention'
+  user_id: string
+}
+
 export interface PictureElement {
   type: 'picture'
   file_id: string
@@ -33,7 +39,7 @@ export interface PictureElement {
   file_size?: number
 }
 
-export type MessageElement = TextElement | ImageElement | FileElement | ReplyElement | PictureElement
+export type MessageElement = TextElement | ImageElement | FileElement | ReplyElement | PictureElement | MentionElement
 
 // ======================== 消息 ========================
 
@@ -187,6 +193,37 @@ export interface WsRoomLeft extends WsIncomingBase {
 
 export interface WsRoomDestroyed extends WsIncomingBase {
   type: 'room_destroyed'
+  room_id: string
+}
+
+/** @提及推送 (v2.2) — 服务端下行，结构和 chat_message 一致，type="mention" */
+export interface WsMention extends WsIncomingBase {
+  type: 'mention'
+  message_id: string
+  from: string
+  display_name?: string
+  elements?: MessageElement[]
+  content?: string
+  timestamp: number
+  room_id: string
+}
+
+/** 公告推送 (v2.2) — 服务端下行，结构和 chat_message 一致，type="announce" */
+export interface WsAnnounce extends WsIncomingBase {
+  type: 'announce'
+  message_id: string
+  from: string
+  display_name?: string
+  elements?: MessageElement[]
+  content?: string
+  timestamp: number
+  room_id: string
+}
+
+/** 已读回执入站帧 (v2.2) — 客户端→服务端 */
+export interface WsMessageRead {
+  type: 'message_read'
+  message_id: string
   room_id: string
 }
 
@@ -407,6 +444,8 @@ export type WsIncomingMessage =
   | WsChatRecall
   | WsChatEditOutbound
   | WsChatDelete
+  | WsMention
+  | WsAnnounce
   | WsMemberKicked
   | WsMemberMuted
   | WsAnnouncement
