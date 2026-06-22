@@ -364,6 +364,7 @@ function jumpToReplySource(messageId: string) {
 <style scoped>
 .message-item {
   max-width: 72%;
+  width: fit-content;
   animation: ld-bubble-in 0.4s var(--ease-out-expo) both;
 }
 
@@ -575,6 +576,7 @@ function jumpToReplySource(messageId: string) {
 .reply-ref {
   position: relative;
   display: block;
+  min-width: 220px;
   padding: 7px 44px 7px 11px;
   margin-bottom: 6px;
   background: var(--surface-2);
