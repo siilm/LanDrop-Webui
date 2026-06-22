@@ -20,6 +20,8 @@ const messagesContainer = ref<HTMLDivElement | null>(null)
 const shouldAutoScroll = ref(true)
 /** 用户翻阅历史期间到达的新消息数 */
 const newMessageCount = ref(0)
+/** 保存滚动位置的防抖定时器 */
+let savePosTimer: ReturnType<typeof setTimeout> | undefined
 
 // ---- 滚动到底部 ----
 
@@ -37,6 +39,26 @@ function scrollToBottom(smooth = false) {
     shouldAutoScroll.value = true
     newMessageCount.value = 0
   })
+}
+
+// ---- 滚动位置记忆 (v2.4) ----
+
+function restoreScrollPosition() {
+  if (!messagesContainer.value || !chatStore.currentRoomId) return
+  if (chatStore.scrollBehavior === 'lastPosition') {
+    const saved = chatStore.roomScrollPositions[chatStore.currentRoomId]
+    if (saved != null && saved > 0) {
+      nextTick(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTop = saved
+          shouldAutoScroll.value = saved >= messagesContainer.value.scrollHeight - messagesContainer.value.clientHeight - 100
+        }
+      })
+      return
+    }
+  }
+  // 默认回到底部
+  scrollToBottom()
 }
 
 // ---- 跳转到指定消息 ----
@@ -95,10 +117,15 @@ watch(
 
 watch(
   () => chatStore.currentRoomId,
-  () => {
-    shouldAutoScroll.value = true
+  (newId, oldId) => {
+    // 离开旧房间时保存滚动位置
+    if (oldId && messagesContainer.value) {
+      chatStore.saveRoomScrollPosition(oldId, messagesContainer.value.scrollTop)
+    }
     newMessageCount.value = 0
-    scrollToBottom()
+    if (newId) {
+      restoreScrollPosition()
+    }
   },
 )
 
@@ -114,6 +141,14 @@ function handleScroll() {
     newMessageCount.value = 0
   } else if (!nearBottom) {
     shouldAutoScroll.value = false
+  }
+
+  // 防抖保存滚动位置
+  if (chatStore.currentRoomId) {
+    clearTimeout(savePosTimer)
+    savePosTimer = setTimeout(() => {
+      chatStore.saveRoomScrollPosition(chatStore.currentRoomId, el.scrollTop)
+    }, 500)
   }
 
   // 加载历史消息
@@ -177,6 +212,7 @@ watch(
     <div
       ref="messagesContainer"
       class="messages-area"
+      :data-density="chatStore.messageDensity"
       @scroll="handleScroll"
     >
       <!-- 加载更多 -->
@@ -264,6 +300,10 @@ watch(
   gap: 14px;
   scroll-behavior: smooth;
 }
+
+/* 消息密度 */
+.messages-area[data-density="compact"] { gap: 6px; padding: 14px 20px; }
+.messages-area[data-density="comfortable"] { gap: 22px; padding: 28px 32px; }
 
 .load-more-hint {
   text-align: center;

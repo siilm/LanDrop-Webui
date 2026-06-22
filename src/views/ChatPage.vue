@@ -45,6 +45,7 @@ import AdminPanel from '@/components/dialogs/AdminPanel.vue'
 import ManagePanel from '@/components/dialogs/ManagePanel.vue'
 import RoomFilesPanel from '@/components/dialogs/RoomFilesPanel.vue'
 import AnnouncePanel from '@/components/dialogs/AnnouncePanel.vue'
+import SettingsPanel from '@/components/dialogs/SettingsPanel.vue'
 import RenameDialog from '@/components/dialogs/RenameDialog.vue'
 
 const router = useRouter()
@@ -683,6 +684,9 @@ async function handleRejectJoinRequest(requestId: string) {
   }
 }
 
+// ======================== 设置面板 ========================
+const showSettingsPanel = ref(false)
+
 // ======================== 修改用户名 ========================
 const showRenameDialog = ref(false)
 
@@ -741,7 +745,7 @@ watch(
       @refresh-rooms="refreshRooms"
       @upload-avatar="triggerFileUpload"
       @open-admin="showAdminPanel = !showAdminPanel"
-      @open-rename="showRenameDialog = true"
+      @open-settings="showSettingsPanel = true"
     />
 
     <!-- 系统管理面板（侧边栏内） -->
@@ -879,6 +883,14 @@ watch(
       :file="avatarFile"
       @confirm="handleCropConfirm"
       @cancel="handleCropCancel"
+    />
+
+    <!-- ==================== 设置面板 ==================== -->
+    <SettingsPanel
+      :visible="showSettingsPanel"
+      @rename="showRenameDialog = true"
+      @upload-avatar="triggerFileUpload"
+      @close="showSettingsPanel = false"
     />
 
     <!-- ==================== 修改用户名 ==================== -->

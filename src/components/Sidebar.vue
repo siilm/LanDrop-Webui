@@ -18,7 +18,7 @@ const emit = defineEmits<{
   refreshRooms: []
   uploadAvatar: []
   openAdmin: []
-  openRename: []
+  openSettings: []
 }>()
 
 const authStore = useAuthStore()
@@ -149,8 +149,8 @@ function handleLeaveCurrentRoom() {
             </span>
           </div>
           <div class="user-actions">
-            <button class="btn-icon" title="修改用户名" @click="emit('openRename')">
-              ✏️
+            <button class="btn-icon" title="设置" @click="emit('openSettings')">
+              ⚙️
             </button>
           </div>
         </div>

@@ -35,6 +35,51 @@ export const useChatStore = defineStore('chat', () => {
   // ---- 待发送消息的确认 ----
   const pendingConfirmations = new Map<string, { timer: ReturnType<typeof setTimeout>; msg: ClientMessage }>()
 
+  // ---- 本地设置 (v2.4, localStorage 持久化) ----
+  const LS_SCROLL = 'landrop_scroll_behavior'
+  const LS_POSITIONS = 'landrop_scroll_positions'
+  const LS_DENSITY = 'landrop_message_density'
+
+  type ScrollBehavior = 'bottom' | 'lastPosition'
+  type MessageDensity = 'compact' | 'normal' | 'comfortable'
+
+  const scrollBehavior = ref<ScrollBehavior>(
+    (localStorage.getItem(LS_SCROLL) as ScrollBehavior) || 'bottom',
+  )
+  const roomScrollPositions = ref<Record<string, number>>(
+    JSON.parse(localStorage.getItem(LS_POSITIONS) || '{}'),
+  )
+  const messageDensity = ref<MessageDensity>(
+    (localStorage.getItem(LS_DENSITY) as MessageDensity) || 'normal',
+  )
+
+  function setScrollBehavior(v: ScrollBehavior) {
+    scrollBehavior.value = v
+    localStorage.setItem(LS_SCROLL, v)
+  }
+
+  function saveRoomScrollPosition(roomId: string, pos: number) {
+    const p = { ...roomScrollPositions.value, [roomId]: pos }
+    roomScrollPositions.value = p
+    localStorage.setItem(LS_POSITIONS, JSON.stringify(p))
+  }
+
+  function setMessageDensity(v: MessageDensity) {
+    messageDensity.value = v
+    localStorage.setItem(LS_DENSITY, v)
+  }
+
+  /** 按角色统计房间数 */
+  const roomRoleCounts = computed(() => {
+    let created = 0; let managed = 0; let joined = 0
+    for (const [_, m] of roomMembers) {
+      // roomMembers 是当前房间的成员，非全局
+      // 该统计需在具体房间上下文中，此 computed 仅占位
+    }
+    // 从 rooms 列表统计（需要角色信息，暂时从 roomMembers 中获取当前用户）
+    return { created, managed, joined, total: rooms.length }
+  })
+
   // ---- 计算属性 ----
   const currentRoom = computed(() => rooms.find((r) => r.roomId === currentRoomId.value))
 
@@ -341,6 +386,7 @@ export const useChatStore = defineStore('chat', () => {
     unreadMentionRoomIds.value = new Set()
     unreadMentionMessages.value = {}
     mentionJumpIndex.value = {}
+    roomScrollPositions.value = {}
     wsConnected.value = false
     wsConnecting.value = false
     loadingHistory.value = false
@@ -360,6 +406,13 @@ export const useChatStore = defineStore('chat', () => {
     loadingHistory,
     hasMoreHistory,
     joinRequests,
+    // 本地设置
+    scrollBehavior,
+    roomScrollPositions,
+    messageDensity,
+    setScrollBehavior,
+    saveRoomScrollPosition,
+    setMessageDensity,
     // @提及追踪
     unreadMentionRoomIds,
     unreadMentionMessages,
