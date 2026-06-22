@@ -45,8 +45,9 @@ const showMention = ref(false)
 const mentionQuery = ref('')
 const mentionCursorPos = ref(0)
 const activeMentionIndex = ref(0)
-/** 当前消息中通过下拉菜单选中的 @提及 user_id 集合 (v2.2) */
-const activeMentionUserIds = ref<Set<string>>(new Set())
+/** 当前消息中已选中的 @提及列表 (v2.3)：{userId, label}，以 chips 形式展示在输入框上方 */
+interface MentionEntry { userId: string; label: string }
+const activeMentions = ref<MentionEntry[]>([])
 
 /** 当前用户是否可 @全体（需房间 role ≥ 1） */
 const canMentionAll = computed(() => {
@@ -58,11 +59,14 @@ const canMentionAll = computed(() => {
 
 const filteredMembers = computed(() => {
   const members = Array.from(chatStore.roomMembers.values())
-  let filtered = members
+  // 排除已经 @ 过的用户（不可重复提及）
+  const mentionedIds = new Set(activeMentions.value.map(m => m.userId))
+  let filtered = members.filter(m => !mentionedIds.has(m.user_id))
   if (mentionQuery.value) {
     const q = mentionQuery.value.toLowerCase()
-    filtered = members.filter(
+    filtered = filtered.filter(
       (m) =>
+        m.username?.toLowerCase().includes(q) ||
         m.display_name?.toLowerCase().includes(q) ||
         m.user_id.toLowerCase().includes(q),
     )
@@ -142,7 +146,7 @@ function handleInput(e: Event) {
       mentionQuery.value = query
       mentionCursorPos.value = cursorPos
       showMention.value = true
-      activeMentionIndex.value = 0
+      activeMentionIndex.value = -1
     }
   } else {
     showMention.value = false
@@ -150,51 +154,67 @@ function handleInput(e: Event) {
 }
 
 function selectMention(member: RoomMember) {
+  // 去重：同一用户不重复 @
+  if (activeMentions.value.some(m => m.userId === member.user_id)) {
+    showMention.value = false
+    textareaRef.value?.focus()
+    return
+  }
+  // 从输入框中移除触发用的 "@query"
   const textBefore = messageText.value.slice(0, mentionCursorPos.value - mentionQuery.value.length - 1)
   const textAfter = messageText.value.slice(mentionCursorPos.value)
-  const mentionText = member.display_name || member.user_id
-  messageText.value = `${textBefore}@${mentionText} ${textAfter}`
+  messageText.value = textBefore + textAfter
+  const label = member.username || member.display_name || member.user_id
+  activeMentions.value = [...activeMentions.value, { userId: member.user_id, label }]
   showMention.value = false
-  // 记录该 @提及 (v2.2)
-  activeMentionUserIds.value = new Set([...activeMentionUserIds.value, member.user_id])
-
   nextTick(() => {
-    if (textareaRef.value) {
-      const newPos = textBefore.length + mentionText.length + 2
-      textareaRef.value.setSelectionRange(newPos, newPos)
-      textareaRef.value.focus()
-    }
+    textareaRef.value?.focus()
   })
 }
 
 /** 选择 @全体成员 (v2.2) */
 function selectMentionAll() {
+  if (activeMentions.value.some(m => m.userId === 'ALL')) {
+    showMention.value = false
+    textareaRef.value?.focus()
+    return
+  }
+  // 从输入框中移除触发用的 "@query"
   const textBefore = messageText.value.slice(0, mentionCursorPos.value - mentionQuery.value.length - 1)
   const textAfter = messageText.value.slice(mentionCursorPos.value)
-  messageText.value = `${textBefore}@全体成员 ${textAfter}`
+  messageText.value = textBefore + textAfter
+  activeMentions.value = [...activeMentions.value, { userId: 'ALL', label: '全体成员' }]
   showMention.value = false
-  activeMentionUserIds.value = new Set([...activeMentionUserIds.value, 'ALL'])
-
   nextTick(() => {
-    if (textareaRef.value) {
-      const newPos = textBefore.length + 6 // '@全体成员 '
-      textareaRef.value.setSelectionRange(newPos, newPos)
-      textareaRef.value.focus()
-    }
+    textareaRef.value?.focus()
   })
+}
+
+function removeMention(userId: string) {
+  activeMentions.value = activeMentions.value.filter(m => m.userId !== userId)
 }
 
 function onMentionKeydown(e: KeyboardEvent) {
   if (!showMention.value) return
+  const hasAll = canMentionAll.value && (
+    mentionQuery.value === '' ||
+    'all'.startsWith(mentionQuery.value.toLowerCase()) ||
+    '全体成员'.includes(mentionQuery.value)
+  )
+  const minIdx = hasAll ? -1 : 0
+  const maxIdx = filteredMembers.value.length - 1
+
   if (e.key === 'ArrowDown') {
     e.preventDefault()
-    activeMentionIndex.value = Math.min(activeMentionIndex.value + 1, filteredMembers.value.length - 1)
+    activeMentionIndex.value = Math.min(activeMentionIndex.value + 1, maxIdx)
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
-    activeMentionIndex.value = Math.max(activeMentionIndex.value - 1, 0)
+    activeMentionIndex.value = Math.max(activeMentionIndex.value - 1, minIdx)
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault()
-    if (filteredMembers.value[activeMentionIndex.value]) {
+    if (activeMentionIndex.value === -1 && hasAll) {
+      selectMentionAll()
+    } else if (filteredMembers.value[activeMentionIndex.value]) {
       selectMention(filteredMembers.value[activeMentionIndex.value])
     }
   } else if (e.key === 'Escape') {
@@ -222,13 +242,13 @@ function handleSend() {
   const text = messageText.value.trim()
   if (!text) return
   const replyTo = props.replyTarget?.messageId
-  const mentionIds = activeMentionUserIds.value.size > 0
-    ? [...activeMentionUserIds.value]
+  const mentionIds = activeMentions.value.length > 0
+    ? activeMentions.value.map(m => m.userId)
     : undefined
   emit('send', text, replyTo, mentionIds)
   emit('clearReply')
   messageText.value = ''
-  activeMentionUserIds.value = new Set()
+  activeMentions.value = []
   // 重置 textarea 高度
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
@@ -394,6 +414,21 @@ onUnmounted(() => {
     <div v-if="isMuted" class="muted-bar">
       🔇 你已被禁言
     </div>
+
+    <!-- @提及 chips (v2.3) -->
+    <Transition name="chip-row">
+      <div v-if="activeMentions.length > 0" class="mention-chips">
+        <span
+          v-for="m in activeMentions"
+          :key="m.userId"
+          class="mention-chip"
+          :class="{ 'mention-chip--all': m.userId === 'ALL' }"
+        >
+          @{{ m.label }}
+          <button class="mention-chip-close" @click="removeMention(m.userId)" title="取消提及">×</button>
+        </span>
+      </div>
+    </Transition>
 
     <!-- 文本输入 -->
     <textarea
@@ -592,6 +627,83 @@ onUnmounted(() => {
 .reply-close:hover {
   color: var(--text);
   background: var(--surface-2-hover);
+}
+
+/* @提及 chips 行 (v2.3) */
+.mention-chips {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 14px 8px;
+  margin-bottom: 6px;
+}
+
+.mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  line-height: 1.5;
+  user-select: none;
+  animation: ld-chip-in 0.22s var(--ease-out-expo) both;
+}
+
+@keyframes ld-chip-in {
+  from { opacity: 0; transform: scale(0.8) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mention-chip--all {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.mention-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: currentColor;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.mention-chip-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+/* chip 行出入动画 */
+.chip-row-enter-active {
+  transition: opacity 0.2s var(--ease-out-expo), transform 0.22s var(--ease-out-expo);
+}
+.chip-row-leave-active {
+  transition: opacity 0.15s ease, transform 0.18s var(--ease-in-out);
+}
+.chip-row-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.chip-row-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
 }
 
 /* 禁言提示栏 */
