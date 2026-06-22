@@ -57,11 +57,13 @@ function scrollToBottom(smooth = false) {
 // ---- 气泡闪烁 ----
 
 function flashEl(el: HTMLElement) {
-  // 重新触发动画：先移除再强制重排再添加
   el.classList.remove('msg-flash')
-  void el.offsetWidth
-  el.classList.add('msg-flash')
-  setTimeout(() => el.classList.remove('msg-flash'), 1700)
+  // requestAnimationFrame 确保 DOM 在移除 class 后完成一次绘制，
+  // 再添加 class 重新触发 CSS 动画；比 void offsetWidth 更可靠
+  requestAnimationFrame(() => {
+    el.classList.add('msg-flash')
+    setTimeout(() => el.classList.remove('msg-flash'), 1700)
+  })
 }
 
 function flashMessage(messageId: string) {
@@ -556,17 +558,5 @@ onUnmounted(() => {
 .fab-pop-leave-to {
   opacity: 0;
   transform: translateY(8px) scale(0.9);
-}
-</style>
-
-<!-- 全局：@消息高亮闪烁 (不受 scoped 限制) -->
-<style>
-.msg-flash {
-  animation: msg-flash-anim 1.6s var(--ease-in-out);
-}
-
-@keyframes msg-flash-anim {
-  0% { box-shadow: 0 0 0 4px var(--warning-border); background: var(--warning-bg); border-radius: var(--radius-sm); }
-  100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
 }
 </style>

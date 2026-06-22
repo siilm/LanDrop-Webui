@@ -291,6 +291,23 @@ body {
   to { opacity: 1; }
 }
 
+/* 跳转高亮闪烁（v2.4）：两次轻柔金色脉冲，突出整行 */
+.msg-flash {
+  animation: ld-flash-twice 1.6s var(--ease-in-out);
+}
+
+@keyframes ld-flash-twice {
+  0%   { box-shadow: 0 0 0 0 var(--warning-border); background: transparent; }
+  12%  { box-shadow: 0 0 0 8px var(--warning-border); background: var(--warning-bg); }
+  24%  { box-shadow: 0 0 0 3px var(--warning-border); background: transparent; }
+  36%  { box-shadow: 0 0 0 0 transparent; background: transparent; }
+  56%  { box-shadow: 0 0 0 0 transparent; background: transparent; }
+  68%  { box-shadow: 0 0 0 8px var(--warning-border); background: var(--warning-bg); }
+  80%  { box-shadow: 0 0 0 3px var(--warning-border); background: transparent; }
+  92%  { box-shadow: 0 0 0 0 transparent; background: transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
+}
+
 /* 减少动效偏好：尊重系统设置 */
 @media (prefers-reduced-motion: reduce) {
   *,

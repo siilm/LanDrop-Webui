@@ -203,17 +203,21 @@ function handleMessage(data: any) {
     /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
     case 'mention': {
       const info = handleChatLikeMessage(data, chatStore)
+      // 判断当前用户是否真的是 @ 目标（elements 中的 mention 类型）
+      const elems: any[] = info?.elements || []
+      const isTargeted = elems.some(
+        (el: any) => el.type === 'mention' && (el.user_id === authStore.userId || el.user_id === 'ALL'),
+      )
       const isSelf = data.from === authStore.userId
       const isOtherRoom = data.room_id !== chatStore.currentRoomId
-      // 非当前房间的 @提及 → 记录未读（侧栏标签 + 进房 FAB）；
-      // 当前房间的 @提及由 MessageList 监听 'mention' 事件做即时闪烁，不计未读
-      if (data.message_id && data.room_id && !isSelf && isOtherRoom) {
+      // 非当前房间 且 非自己 且 自己确实被@ → 记录未读
+      if (data.message_id && data.room_id && !isSelf && isOtherRoom && isTargeted) {
         chatStore.addUnreadMention(data.room_id, data.message_id)
       }
       // 通过事件总线通知 ChatPage（发 message_read）与 MessageList（即时闪烁）
       emitWsEvent('mention', data)
-      // 非当前房间且非自己 → 侧栏横幅通知
-      if (info && isOtherRoom && !isSelf) {
+      // 非当前房间 且 非自己 且 自己确实被@ → 侧栏横幅通知
+      if (info && isOtherRoom && !isSelf && isTargeted) {
         emitWsEvent('mention_alert', data)
       }
       break
