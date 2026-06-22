@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { getBaseUrl } from '@/composables/useApi'
+import { avatarBlobCache } from '@/utils/BlobCache'
 import type { RoomMember, ClientMessage } from '@/types/chat'
 
 const props = defineProps<{
@@ -70,17 +71,46 @@ const filteredMembers = computed(() => {
   return [...filtered].sort((a, b) => parseInt(b.role) - parseInt(a.role))
 })
 
-/** 获取成员头像 URL（带 JWT token 的直链，<img> fallback 方案） */
-function getMemberAvatarUrl(userId: string): string {
+/** 头像 blob URL 缓存（userId → blob URL），通过 fetch + Authorization 头加载，避免 img 直链 JWT 过长的问题 */
+const avatarBlobUrls = ref<Record<string, string>>({})
+const loadingAvatars = ref<Set<string>>(new Set())
+
+async function preloadAvatars(members: RoomMember[]) {
   const base = getBaseUrl().replace(/\/api\/?$/, '')
-  return `${base}/api/getfiles/avatar/${userId}?token=${encodeURIComponent(authStore.accessToken || '')}`
+  for (const m of members) {
+    const uid = m.user_id
+    if (avatarBlobUrls.value[uid] || loadingAvatars.value.has(uid)) continue
+    // 先查持久缓存
+    const cached = avatarBlobCache.get(uid)
+    if (cached) {
+      avatarBlobUrls.value = { ...avatarBlobUrls.value, [uid]: cached }
+      continue
+    }
+    loadingAvatars.value = new Set([...loadingAvatars.value, uid])
+    try {
+      const res = await fetch(`${base}/api/getfiles/avatar/${uid}`, {
+        headers: { Authorization: `Bearer ${authStore.accessToken}` },
+      })
+      if (!res.ok) throw new Error('not found')
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      avatarBlobCache.setPersistent(uid, blobUrl, blob)
+      avatarBlobUrls.value = { ...avatarBlobUrls.value, [uid]: blobUrl }
+    } catch {
+      // 加载失败：记录空字符串，模板回退到首字母占位
+      avatarBlobUrls.value = { ...avatarBlobUrls.value, [uid]: '' }
+    } finally {
+      loadingAvatars.value = new Set([...loadingAvatars.value].filter(id => id !== uid))
+    }
+  }
 }
 
-/** 成员头像加载失败 → 显示首字母占位 */
-const avatarErrors = ref<Set<string>>(new Set())
-function onAvatarError(userId: string) {
-  avatarErrors.value = new Set([...avatarErrors.value, userId])
-}
+// 下拉打开时预加载当前匹配成员的头像
+watch(filteredMembers, (members) => {
+  if (members.length > 0) {
+    preloadAvatars(members.slice(0, 10))
+  }
+})
 
 /** 关闭 mention 下拉（点击外部、ESC 等不做@提及，纯文本发送） */
 function closeMention() {
@@ -292,18 +322,17 @@ onUnmounted(() => {
               @mouseenter="activeMentionIndex = i"
             >
               <img
-                v-if="!avatarErrors.has(member.user_id)"
-                :src="getMemberAvatarUrl(member.user_id)"
+                v-if="avatarBlobUrls[member.user_id]"
+                :src="avatarBlobUrls[member.user_id]!"
                 class="mention-avatar"
                 :alt="member.user_id"
-                @error="onAvatarError(member.user_id)"
                 loading="lazy"
               />
               <span v-else class="mention-avatar mention-avatar--fallback">
-                {{ (member.display_name || member.user_id || '?')[0].toUpperCase() }}
+                {{ (member.username || member.display_name || member.user_id || '?')[0].toUpperCase() }}
               </span>
               <span class="mention-body">
-                <span class="mention-name">{{ member.display_name || member.username || member.user_id }}</span>
+                <span class="mention-name">{{ member.username || member.display_name || member.user_id }}</span>
                 <span class="mention-uid">{{ member.user_id }}</span>
               </span>
             </div>
