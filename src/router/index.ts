@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import LoginPage from '@/views/LoginPage.vue'
+import LoginPage from '@/views/NeoLoginPage.vue'
 import ChatPage from '@/views/ChatPage.vue'
 
 const routes = [
