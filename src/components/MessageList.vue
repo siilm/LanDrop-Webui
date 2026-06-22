@@ -123,9 +123,7 @@ watch(
       chatStore.saveRoomScrollPosition(oldId, messagesContainer.value.scrollTop)
     }
     newMessageCount.value = 0
-    if (newId) {
-      restoreScrollPosition()
-    }
+    shouldAutoScroll.value = true
   },
 )
 
@@ -185,7 +183,12 @@ async function loadInitialMessages() {
   chatStore.loadingHistory = true
   try {
     const res = await fetchRoomMessages(chatStore.currentRoomId, undefined, 50)
+    // 禁止 messages.length watcher 在首屏加载时自动滚底，
+    // 由 restoreScrollPosition() 统一决策
+    shouldAutoScroll.value = false
     chatStore.setMessages(res.messages)
+    await nextTick()
+    restoreScrollPosition()
     if (res.messages.length < 50) {
       chatStore.hasMoreHistory = false
     }
