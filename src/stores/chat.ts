@@ -374,10 +374,17 @@ export const useChatStore = defineStore('chat', () => {
     const msgs = unreadMentionMessages.value[roomId]
     if (!msgs || msgs.length === 0) return null
     const cur = mentionJumpIndex.value[roomId] ?? 0
-    if (cur >= msgs.length) return null
+    if (cur >= msgs.length) {
+      // 全部已消费 → 清理数据，防止再次进入房间时 FAB 重现
+      clearUnreadMentions(roomId)
+      return null
+    }
     const result = { messageId: msgs[cur], index: cur, total: msgs.length }
-    // 推进索引，到达末尾后下次调用返回 null
     mentionJumpIndex.value = { ...mentionJumpIndex.value, [roomId]: cur + 1 }
+    // 最后一个刚消费完 → 清理
+    if (cur + 1 >= msgs.length) {
+      clearUnreadMentions(roomId)
+    }
     return result
   }
 

@@ -223,6 +223,17 @@ function getMemberNameById(userId: string): string {
   const member = chatStore.roomMembers.get(userId)
   return member?.username || member?.display_name || ''
 }
+
+/** 跳转到回复引用的原消息 (v2.4) */
+function jumpToReplySource(messageId: string) {
+  if (!messageId) return
+  const el = document.getElementById('msg-' + messageId)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('msg-flash')
+    setTimeout(() => el.classList.remove('msg-flash'), 1600)
+  }
+}
 </script>
 
 <template>
@@ -296,8 +307,13 @@ function getMemberNameById(userId: string): string {
 
           <!-- 回复 -->
           <div v-else-if="el.type === 'reply'" class="reply-ref">
-            <div class="reply-sender-line">回复 <strong>@{{ getReplyInfo(el).senderName }}</strong></div>
-            <div class="reply-text-line">{{ getReplyInfo(el).previewText || '(图片/文件)' }}</div>
+            <button
+              class="reply-jump-btn"
+              title="跳转到原消息"
+              @click.stop="jumpToReplySource(el.message_id)"
+            >↩</button>
+            <div class="reply-sender-line">回复 <strong>@{{ getReplyInfo(el).senderName || el.message_id }}</strong></div>
+            <div class="reply-text-line">{{ getReplyInfo(el).previewText || '[回复的消息]' }}</div>
           </div>
 
           <!-- @提及 (v2.2) -->
@@ -557,14 +573,41 @@ function getMemberNameById(userId: string): string {
 }
 
 .reply-ref {
+  position: relative;
   display: block;
-  padding: 6px 10px;
+  padding: 6px 28px 6px 10px;
   margin-bottom: 6px;
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-xs);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.reply-jump-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.2s var(--ease-bounce), background 0.15s ease;
+}
+
+.reply-jump-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: var(--accent-soft-hover);
 }
 
 .reply-sender-line {

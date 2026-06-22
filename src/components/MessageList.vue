@@ -43,6 +43,22 @@ function scrollToBottom(smooth = false) {
 
 // ---- 滚动位置记忆 (v2.4) ----
 
+function flashUnreadMentions() {
+  if (!chatStore.currentRoomId) return
+  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
+  if (!msgs || msgs.length === 0) return
+  // 为每个未读 @消息气泡添加闪烁，依次延迟产生波浪效果
+  msgs.forEach((mid, i) => {
+    setTimeout(() => {
+      const el = document.getElementById('msg-' + mid)
+      if (el) {
+        el.classList.add('msg-flash')
+        setTimeout(() => el.classList.remove('msg-flash'), 1700)
+      }
+    }, i * 120)
+  })
+}
+
 function restoreScrollPosition() {
   if (!messagesContainer.value || !chatStore.currentRoomId) return
 
@@ -61,6 +77,9 @@ function restoreScrollPosition() {
     })
     return
   }
+
+  // 进入房间时闪烁未读 @消息气泡 (v2.4)
+  flashUnreadMentions()
 
   if (chatStore.scrollBehavior === 'lastPosition') {
     const saved = chatStore.roomScrollPositions[chatStore.currentRoomId]
