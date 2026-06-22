@@ -374,7 +374,7 @@ onUnmounted(() => {
       :placeholder="isMuted ? '你已被禁言，无法发送消息' : '输入消息... @ 提及成员'"
       rows="1"
       :disabled="!chatStore.currentRoomId || isMuted"
-      @input="handleInput; autoResize()"
+      @input="handleInput($event); autoResize()"
       @keydown="handleKeydown"
     ></textarea>
 
