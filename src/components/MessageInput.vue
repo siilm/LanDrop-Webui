@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
+import { getBaseUrl } from '@/composables/useApi'
 import type { RoomMember, ClientMessage } from '@/types/chat'
 
 const props = defineProps<{
@@ -56,14 +57,43 @@ const canMentionAll = computed(() => {
 
 const filteredMembers = computed(() => {
   const members = Array.from(chatStore.roomMembers.values())
-  if (!mentionQuery.value) return members
-  const q = mentionQuery.value.toLowerCase()
-  return members.filter(
-    (m) =>
-      m.display_name?.toLowerCase().includes(q) ||
-      m.user_id.toLowerCase().includes(q),
-  )
+  let filtered = members
+  if (mentionQuery.value) {
+    const q = mentionQuery.value.toLowerCase()
+    filtered = members.filter(
+      (m) =>
+        m.display_name?.toLowerCase().includes(q) ||
+        m.user_id.toLowerCase().includes(q),
+    )
+  }
+  // 按角色降序排列：Creator(2) > Admin(1) > Member(0)
+  return [...filtered].sort((a, b) => parseInt(b.role) - parseInt(a.role))
 })
+
+/** 获取成员头像 URL（带 JWT token 的直链，<img> fallback 方案） */
+function getMemberAvatarUrl(userId: string): string {
+  const base = getBaseUrl().replace(/\/api\/?$/, '')
+  return `${base}/api/getfiles/avatar/${userId}?token=${encodeURIComponent(authStore.accessToken || '')}`
+}
+
+/** 成员头像加载失败 → 显示首字母占位 */
+const avatarErrors = ref<Set<string>>(new Set())
+function onAvatarError(userId: string) {
+  avatarErrors.value = new Set([...avatarErrors.value, userId])
+}
+
+/** 关闭 mention 下拉（点击外部、ESC 等不做@提及，纯文本发送） */
+function closeMention() {
+  showMention.value = false
+}
+
+function onDocumentClick(e: MouseEvent) {
+  if (!showMention.value) return
+  const target = e.target as HTMLElement
+  if (!target.closest('.mention-dropdown') && !target.closest('.msg-input')) {
+    closeMention()
+  }
+}
 
 // 检测 @ 触发
 function handleInput(e: Event) {
@@ -218,45 +248,68 @@ function autoResize() {
     textareaRef.value.style.height = `${Math.min(textareaRef.value.scrollHeight, 120)}px`
   }
 }
+
+// —— 生命周期 ——
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClick)
+})
 </script>
 
 <template>
   <div class="input-area">
-    <!-- @mention 下拉 -->
+    <!-- @mention 下拉 (v2.3) -->
     <Teleport to="body">
-      <div
-        v-if="showMention && (filteredMembers.length > 0 || canMentionAll)"
-        class="mention-dropdown"
-        :style="{
-          position: 'fixed',
-          bottom: '80px',
-          left: '24px',
-          right: '24px',
-        }"
-      >
-        <!-- @全体成员 (v2.2)：需 role≥1，查询匹配 "all"/"全体" 或无查询时显示 -->
+      <Transition name="mention-pop">
         <div
-          v-if="canMentionAll && (mentionQuery === '' || 'all'.startsWith(mentionQuery.toLowerCase()) || '全体成员'.includes(mentionQuery))"
-          class="mention-item mention-item--all"
-          :class="{ active: activeMentionIndex === 0 && filteredMembers.length === 0 }"
-          @click="selectMentionAll"
-          @mouseenter="activeMentionIndex = -1"
+          v-if="showMention && (filteredMembers.length > 0 || canMentionAll)"
+          class="mention-dropdown"
         >
-          <span class="mention-name">📢 全体成员</span>
-          <span class="mention-id">@all</span>
+          <!-- @全体成员 (v2.2)：需 role≥1，查询匹配 "all"/"全体" 或无查询时显示 -->
+          <div
+            v-if="canMentionAll && (mentionQuery === '' || 'all'.startsWith(mentionQuery.toLowerCase()) || '全体成员'.includes(mentionQuery))"
+            class="mention-item mention-item--all"
+            :class="{ active: activeMentionIndex === -1 }"
+            @click="selectMentionAll"
+            @mouseenter="activeMentionIndex = -1"
+          >
+            <span class="mention-avatar mention-avatar--all">📢</span>
+            <span class="mention-body">
+              <span class="mention-name">全体成员</span>
+              <span class="mention-uid">all</span>
+            </span>
+          </div>
+          <div class="mention-scroll">
+            <div
+              v-for="(member, i) in filteredMembers"
+              :key="member.user_id"
+              class="mention-item"
+              :class="{ active: i === activeMentionIndex }"
+              @click="selectMention(member)"
+              @mouseenter="activeMentionIndex = i"
+            >
+              <img
+                v-if="!avatarErrors.has(member.user_id)"
+                :src="getMemberAvatarUrl(member.user_id)"
+                class="mention-avatar"
+                :alt="member.user_id"
+                @error="onAvatarError(member.user_id)"
+                loading="lazy"
+              />
+              <span v-else class="mention-avatar mention-avatar--fallback">
+                {{ (member.display_name || member.user_id || '?')[0].toUpperCase() }}
+              </span>
+              <span class="mention-body">
+                <span class="mention-name">{{ member.display_name || member.username || member.user_id }}</span>
+                <span class="mention-uid">{{ member.user_id }}</span>
+              </span>
+            </div>
+          </div>
         </div>
-        <div
-          v-for="(member, i) in filteredMembers"
-          :key="member.user_id"
-          class="mention-item"
-          :class="{ active: i === activeMentionIndex }"
-          @click="selectMention(member)"
-          @mouseenter="activeMentionIndex = i"
-        >
-          <span class="mention-name">{{ member.display_name || member.user_id }}</span>
-          <span class="mention-id">@{{ member.user_id }}</span>
-        </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <!-- 图片按钮 -->
@@ -529,59 +582,137 @@ function autoResize() {
   transform: translateY(-100%);
 }
 
-/* mention 下拉 - 全局样式 */
+/* mention 下拉 - 全局样式 (v2.3 重构) */
 :global(.mention-dropdown) {
+  position: fixed;
+  bottom: 90px;
+  left: 24px;
+  right: 24px;
+  max-width: 340px;
   background: var(--surface-solid);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  box-shadow: var(--shadow-lg);
-  max-height: 200px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-soft, transparent) inset;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  z-index: 200;
+  overflow: hidden;
+}
+
+/* 滚动容器：最多展示 ~5 项，超出可滚动 */
+:global(.mention-scroll) {
+  max-height: 260px;
   overflow-y: auto;
-  z-index: 100;
-  margin-bottom: 4px;
   padding: 4px;
-  animation: ld-slide-down 0.2s var(--ease-out-expo) both;
 }
 
 :global(.mention-item) {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   cursor: pointer;
-  border-radius: var(--radius-xs);
-  transition: background 0.15s ease;
-}
-
-:global(.mention-item--all) {
-  background: var(--warning-bg);
-  border-bottom: 1px solid var(--warning-border);
-  margin-bottom: 2px;
-}
-
-:global(.mention-item--all:hover),
-:global(.mention-item--all.active) {
-  background: var(--warning-border);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 :global(.mention-item:hover),
 :global(.mention-item.active) {
   background: var(--accent-soft);
+  transform: translateX(3px);
+}
+
+:global(.mention-item--all) {
+  background: var(--warning-bg);
+  border-radius: 0;
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--warning-border);
+}
+
+:global(.mention-item--all:hover),
+:global(.mention-item--all.active) {
+  background: var(--warning-border);
+  transform: none;
+}
+
+/* 头像 */
+:global(.mention-avatar) {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+:global(.mention-avatar--all) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--warning-bg);
+  box-shadow: 0 0 0 1px var(--warning-border);
+}
+
+:global(.mention-avatar--fallback) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+/* 名字 + uid 列 */
+:global(.mention-body) {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 
 :global(.mention-name) {
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-:global(.mention-id) {
-  font-size: 12px;
+:global(.mention-uid) {
+  font-size: 11px;
   color: var(--text-muted);
   flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+:global(.mention-uid)::before {
+  content: '(';
+}
+
+:global(.mention-uid)::after {
+  content: ')';
+}
+
+/* —— 弹出/收起动画 —— */
+:global(.mention-pop-enter-active) {
+  transition: opacity 0.22s var(--ease-out-expo),
+    transform 0.28s var(--ease-out-expo);
+}
+:global(.mention-pop-leave-active) {
+  transition: opacity 0.16s ease,
+    transform 0.2s var(--ease-in-out);
+}
+:global(.mention-pop-enter-from) {
+  opacity: 0;
+  transform: translateY(12px) scale(0.95);
+}
+:global(.mention-pop-leave-to) {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
 }
 </style>
