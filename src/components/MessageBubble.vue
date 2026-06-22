@@ -363,22 +363,25 @@ function jumpToReplySource(messageId: string) {
 
 <style scoped>
 .message-item {
+  display: flex;
+  flex-direction: column;
   max-width: 72%;
   animation: ld-bubble-in 0.4s var(--ease-out-expo) both;
 }
 
 .message-item.self {
   align-self: flex-end;
+  align-items: flex-end;
 }
 
-.message-item.self .message-bubble,
-.message-item.self .message-footer {
-  align-self: flex-end;
+.message-item:not(.self) {
+  align-items: flex-start;
 }
 
 .message-header {
   display: flex;
   align-items: center;
+  align-self: stretch;
   gap: 8px;
   margin-bottom: 5px;
 }
