@@ -291,9 +291,11 @@ body {
   to { opacity: 1; }
 }
 
-/* 跳转高亮闪烁（v2.4）：两次轻柔金色脉冲，突出整行 */
+/* 跳转高亮闪烁（v2.4）：两次轻柔金色脉冲，突出整行。
+   选择器优先于 MessageBubble scoped 的 .message-item animation */
+.message-item.msg-flash,
 .msg-flash {
-  animation: ld-flash-twice 1.6s var(--ease-in-out);
+  animation: ld-flash-twice 1.6s var(--ease-in-out) !important;
 }
 
 @keyframes ld-flash-twice {

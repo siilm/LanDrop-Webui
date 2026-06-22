@@ -137,12 +137,15 @@ function restoreScrollPosition() {
           messagesContainer.value.scrollTop = saved
           shouldAutoScroll.value = saved >= messagesContainer.value.scrollHeight - messagesContainer.value.clientHeight - 100
         }
+        pruneVisibleMentions()
       })
       return
     }
   }
   // 默认回到底部（@气泡可见时由 IntersectionObserver 触发闪烁）
   scrollToBottom()
+  // 若所有 @消息已在视口内，无需 FAB 跳转提示
+  nextTick(() => pruneVisibleMentions())
 }
 
 // ---- 跳转到指定消息 ----
@@ -171,6 +174,23 @@ function jumpToNextMention() {
   const mid = mentionJumpList.value[mentionJumpIdx.value]
   mentionJumpIdx.value++
   scrollToMessage(mid)
+}
+
+/** 移除已在视口内可见的 @消息，避免为已读内容显示 FAB */
+function pruneVisibleMentions() {
+  if (!messagesContainer.value || mentionJumpList.value.length === 0) return
+  const containerRect = messagesContainer.value.getBoundingClientRect()
+  const remaining = mentionJumpList.value.filter((mid, i) => {
+    // 保留已跳转过的（索引已推进）和不可见的
+    if (i < mentionJumpIdx.value) return false // 已跳转，移除
+    const el = document.getElementById('msg-' + mid)
+    if (!el) return false // DOM 不存在，移除
+    const r = el.getBoundingClientRect()
+    const fullyVisible = r.top >= containerRect.top && r.bottom <= containerRect.bottom
+    return !fullyVisible // 不可见 → 保留
+  })
+  mentionJumpList.value = remaining
+  if (remaining.length === 0) mentionJumpIdx.value = 0
 }
 
 // ---- 消息监听 ----
