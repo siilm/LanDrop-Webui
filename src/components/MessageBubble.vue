@@ -364,11 +364,15 @@ function jumpToReplySource(messageId: string) {
 <style scoped>
 .message-item {
   max-width: 72%;
-  width: fit-content;
   animation: ld-bubble-in 0.4s var(--ease-out-expo) both;
 }
 
 .message-item.self {
+  align-self: flex-end;
+}
+
+.message-item.self .message-bubble,
+.message-item.self .message-footer {
   align-self: flex-end;
 }
 
@@ -436,7 +440,10 @@ function jumpToReplySource(messageId: string) {
 }
 
 .message-bubble {
-  padding: 10px 14px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 70px;
+  padding: 8px 12px;
   background: var(--bubble-other);
   color: var(--bubble-other-text);
   border-radius: var(--radius-md);
