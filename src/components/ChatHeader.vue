@@ -70,27 +70,39 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
 
 <style scoped>
 .chat-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  position: relative;
+  z-index: 2;
+  transition: background 0.5s var(--ease-in-out), border-color 0.5s var(--ease-in-out);
 }
 
 .chat-header h3 {
   margin: 0;
   font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .room-id {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin-left: auto;
 }
 
@@ -98,15 +110,23 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 18px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  font-size: 17px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
   line-height: 1;
-  transition: background 0.15s;
+  transition: background 0.18s ease, transform 0.2s var(--ease-bounce);
 }
 
 .btn-header-icon:hover {
-  background: #f0f2f5;
+  background: var(--accent-soft);
+  transform: translateY(-2px);
 }
 
+.btn-header-icon:active {
+  transform: translateY(0) scale(0.94);
+}
 </style>

@@ -1,0 +1,304 @@
+/* ================================================================
+   LanDrop — 全局设计令牌（Design Tokens）
+   以登录页 NeoLoginPage 的 Monet 调色（源自 #403577）为基准，
+   提炼为应用级主题系统：紫色作为「点缀 + 品牌侧栏」克制使用，
+   主聊天区与对话框保持中性，避免大面积紫色过艳。
+   主题通过 documentElement 上的 data-theme（light/dark）切换。
+   ================================================================ */
+
+:root {
+  /* ---- 品牌色（源自 #403577） ---- */
+  --brand: #403577;
+  --brand-light: #5b4d9e;
+  --brand-soft: #7b6fc0;
+  --brand-bright: #9d8fe0; /* 深色背景上可读的紫（链接/强调文字） */
+
+  /* ---- 非线性缓动 ---- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);   /* 优雅减速落位 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* 回弹 */
+  --ease-smooth: cubic-bezier(0.33, 1, 0.68, 1);    /* 顺滑 */
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+
+  /* ---- 圆角 ---- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* ---- 字体 ---- */
+  --font-sans: 'Inter', 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  /* ================================================================
+     侧栏「品牌轨道」令牌 —— 两个主题下都保持深色品牌底，
+     让紫色集中在侧栏与点缀处，主区域保持中性。
+     ================================================================ */
+  --side-bg: linear-gradient(185deg, #271f44 0%, #1a1530 60%, #15111f 100%);
+  --side-text: #ece7f5;
+  --side-text-dim: #aaa0c6;
+  --side-text-faint: #756d90;
+  --side-border: rgba(255, 255, 255, 0.08);
+  --side-border-soft: rgba(255, 255, 255, 0.06);
+  --side-item-hover: rgba(255, 255, 255, 0.06);
+  --side-item-active: rgba(123, 111, 192, 0.22);
+  --side-input-bg: rgba(255, 255, 255, 0.07);
+  --side-input-bg-focus: rgba(255, 255, 255, 0.1);
+  --side-btn-bg: rgba(123, 111, 192, 0.16);
+  --side-btn-bg-hover: rgba(123, 111, 192, 0.3);
+  --side-accent: #9d8fe0;
+
+  /* ================================================================
+     默认 = 深色主题（无 data-theme 时回退到此）
+     ================================================================ */
+  --bg: #0d0d14;
+  --bg-elev: #14121f;
+  --bg-chat: #100e18;
+  --surface: rgba(22, 18, 34, 0.82);
+  --surface-solid: #1a1626;
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --surface-2-hover: rgba(255, 255, 255, 0.07);
+
+  --text: #e8e2f0;
+  --text-secondary: #a098b8;
+  --text-muted: #6b6580;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --border-focus: rgba(123, 111, 192, 0.6);
+
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-bg-hover: rgba(255, 255, 255, 0.07);
+
+  --accent: var(--brand);
+  --accent-2: var(--brand-light);
+  --accent-text: var(--brand-bright);     /* 深色上可读的强调文字/链接 */
+  --accent-contrast: #ffffff;             /* 紫色块上的文字 */
+  --accent-soft: rgba(123, 111, 192, 0.16);
+  --accent-soft-hover: rgba(123, 111, 192, 0.26);
+  --accent-muted: rgba(64, 53, 119, 0.2);
+  --accent-glow: rgba(91, 77, 158, 0.4);
+
+  /* 语义色 */
+  --success: #51cf66;
+  --success-text: #6ee07f;
+  --success-bg: rgba(81, 207, 102, 0.13);
+  --success-border: rgba(81, 207, 102, 0.28);
+  --danger: #ff6b6b;
+  --danger-text: #ff8585;
+  --danger-bg: rgba(255, 107, 107, 0.12);
+  --danger-border: rgba(255, 107, 107, 0.28);
+  --warning: #f7b955;
+  --warning-text: #f7c877;
+  --warning-bg: rgba(247, 185, 85, 0.13);
+  --warning-border: rgba(247, 185, 85, 0.3);
+
+  /* 角色徽章（柔和底 + 可读字） */
+  --role-owner-bg: rgba(224, 164, 88, 0.18);
+  --role-owner-text: #e6b270;
+  --role-admin-bg: rgba(110, 168, 230, 0.18);
+  --role-admin-text: #84b6ee;
+  --role-creator-bg: rgba(224, 164, 88, 0.18);
+  --role-creator-text: #e6b270;
+  --role-member-bg: rgba(255, 255, 255, 0.08);
+  --role-member-text: #a89fc0;
+  --role-muted-bg: rgba(255, 107, 107, 0.15);
+  --role-muted-text: #ff8f8f;
+
+  /* 气泡 */
+  --bubble-other: rgba(255, 255, 255, 0.06);
+  --bubble-other-text: var(--text);
+  --bubble-self: linear-gradient(135deg, #4a3d86 0%, #5f51a6 100%);
+  --bubble-self-text: #f3f0fb;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 14px 50px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 8px 30px var(--accent-glow);
+
+  /* 遮罩 / 滚动条 */
+  --overlay: rgba(6, 5, 12, 0.66);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
+
+  /* 玻璃模糊 */
+  --glass-blur: blur(24px) saturate(1.35);
+
+  color-scheme: dark;
+}
+
+/* ================================================================
+   浅色主题覆盖
+   ================================================================ */
+:root[data-theme='light'] {
+  --bg: #f3f1f9;
+  --bg-elev: #ffffff;
+  --bg-chat: #faf9fd;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-solid: #ffffff;
+  --surface-2: rgba(64, 53, 119, 0.035);
+  --surface-2-hover: rgba(64, 53, 119, 0.06);
+
+  --text: #1d1830;
+  --text-secondary: #5b5570;
+  --text-muted: #8c86a0;
+
+  --border: rgba(29, 24, 48, 0.1);
+  --border-strong: rgba(29, 24, 48, 0.16);
+  --border-focus: rgba(64, 53, 119, 0.45);
+
+  --input-bg: rgba(64, 53, 119, 0.035);
+  --input-bg-hover: rgba(64, 53, 119, 0.06);
+
+  --accent: var(--brand);
+  --accent-2: var(--brand-light);
+  --accent-text: #5b4d9e;               /* 浅色上可读的强调文字/链接 */
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(64, 53, 119, 0.1);
+  --accent-soft-hover: rgba(64, 53, 119, 0.16);
+  --accent-muted: rgba(64, 53, 119, 0.1);
+  --accent-glow: rgba(64, 53, 119, 0.25);
+
+  --success: #2f9e54;
+  --success-text: #2f9e54;
+  --success-bg: rgba(47, 158, 84, 0.1);
+  --success-border: rgba(47, 158, 84, 0.25);
+  --danger: #d64545;
+  --danger-text: #c0392b;
+  --danger-bg: rgba(214, 69, 69, 0.08);
+  --danger-border: rgba(214, 69, 69, 0.22);
+  --warning: #c98a1e;
+  --warning-text: #b07b1a;
+  --warning-bg: rgba(201, 138, 30, 0.1);
+  --warning-border: rgba(201, 138, 30, 0.28);
+
+  --role-owner-bg: rgba(201, 138, 30, 0.14);
+  --role-owner-text: #a8741a;
+  --role-admin-bg: rgba(64, 53, 119, 0.12);
+  --role-admin-text: #4a3d86;
+  --role-creator-bg: rgba(201, 138, 30, 0.14);
+  --role-creator-text: #a8741a;
+  --role-member-bg: rgba(29, 24, 48, 0.06);
+  --role-member-text: #6b6580;
+  --role-muted-bg: rgba(214, 69, 69, 0.12);
+  --role-muted-text: #c0392b;
+
+  --bubble-other: #ffffff;
+  --bubble-other-text: #2a2540;
+  --bubble-self: linear-gradient(135deg, #5b4d9e 0%, #7264b8 100%);
+  --bubble-self-text: #ffffff;
+
+  --shadow-sm: 0 2px 10px rgba(64, 53, 119, 0.08);
+  --shadow-md: 0 6px 24px rgba(64, 53, 119, 0.1);
+  --shadow-lg: 0 14px 44px rgba(64, 53, 119, 0.16);
+  --shadow-glow: 0 8px 30px var(--accent-glow);
+
+  --overlay: rgba(40, 33, 66, 0.4);
+  --scrollbar-thumb: rgba(64, 53, 119, 0.2);
+  --scrollbar-thumb-hover: rgba(64, 53, 119, 0.34);
+
+  color-scheme: light;
+}
+
+/* ================================================================
+   基础元素
+   ================================================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  /* 主题切换时整体平滑过渡 */
+  transition: background-color 0.5s var(--ease-in-out), color 0.5s var(--ease-in-out);
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+::selection {
+  background: var(--accent-soft-hover);
+  color: var(--text);
+}
+
+/* ================================================================
+   共享动画关键帧（全局，可被任意 scoped 组件按名引用）
+   ================================================================ */
+@keyframes ld-rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ld-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ld-pop-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes ld-slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ld-bubble-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ld-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ld-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes ld-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 减少动效偏好：尊重系统设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

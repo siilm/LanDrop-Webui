@@ -5,6 +5,7 @@ import { useChatStore } from '@/stores/chat'
 import { fetchRoomMembers } from '@/composables/useApi'
 import { avatarBlobCache, fileBlobCache } from '@/utils/BlobCache'
 import { getBaseUrl } from '@/composables/useApi'
+import { useTheme } from '@/composables/useTheme'
 import RoomList from './RoomList.vue'
 import MyRequestsPanel from './dialogs/MyRequestsPanel.vue'
 
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const { themeIcon, themeLabel, cycleTheme } = useTheme()
 
 // 角色徽章样式
 const globalRoleClass = computed(() => {
@@ -69,7 +71,20 @@ function handleLeaveCurrentRoom() {
   <aside class="sidebar">
     <!-- 用户信息 -->
     <div class="sidebar-header">
-      <h2>LanDrop</h2>
+      <div class="brand-row">
+        <span class="brand-logo">💬</span>
+        <h2>LanDrop</h2>
+        <button
+          class="theme-toggle-btn"
+          :title="themeLabel"
+          :aria-label="themeLabel"
+          @click="cycleTheme"
+        >
+          <Transition name="theme-roll" mode="out-in">
+            <span :key="themeIcon" class="theme-toggle-glyph">{{ themeIcon }}</span>
+          </Transition>
+        </button>
+      </div>
       <div class="user-info">
         <div class="user-avatar-row">
           <div class="avatar-wrapper" @click="handleUploadAvatar" title="点击更换头像">
@@ -167,22 +182,82 @@ function handleLeaveCurrentRoom() {
 <style scoped>
 .sidebar {
   width: 280px;
-  background: #1a1a2e;
-  color: #fff;
+  background: var(--side-bg);
+  color: var(--side-text);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: relative;
+  box-shadow: inset -1px 0 0 var(--side-border-soft);
 }
 
 .sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--side-border);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 16px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  box-shadow: 0 4px 14px var(--accent-glow);
+  flex-shrink: 0;
 }
 
 .sidebar-header h2 {
-  margin: 0 0 12px;
-  font-size: 20px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  flex: 1;
 }
+
+/* 主题切换按钮 */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--side-border);
+  background: var(--side-input-bg);
+  color: var(--side-text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.25s var(--ease-bounce);
+}
+
+.theme-toggle-btn:hover {
+  color: var(--side-text);
+  background: var(--side-btn-bg-hover);
+  transform: rotate(-18deg) scale(1.08);
+}
+
+.theme-toggle-glyph {
+  display: inline-block;
+  line-height: 1;
+}
+
+.theme-roll-enter-active,
+.theme-roll-leave-active {
+  transition: opacity 0.22s ease, transform 0.3s var(--ease-out-expo);
+}
+.theme-roll-enter-from { opacity: 0; transform: translateY(-0.7em); }
+.theme-roll-leave-to { opacity: 0; transform: translateY(0.7em); }
 
 .user-info {
   display: flex;
@@ -192,7 +267,7 @@ function handleLeaveCurrentRoom() {
 
 .username {
   font-size: 13px;
-  opacity: 0.8;
+  color: var(--side-text);
   word-break: break-all;
   max-width: 160px;
 }
@@ -201,25 +276,25 @@ function handleLeaveCurrentRoom() {
   display: inline-block;
   font-size: 10px;
   font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 8px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
   margin-top: 2px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .role-owner {
-  background: #e67e22;
-  color: #fff;
+  background: var(--role-owner-bg);
+  color: var(--role-owner-text);
 }
 
 .role-public_admin {
-  background: #3498db;
-  color: #fff;
+  background: var(--role-admin-bg);
+  color: var(--role-admin-text);
 }
 
 .role-member {
-  background: #95a5a6;
-  color: #fff;
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
 }
 
 .user-avatar-row {
@@ -231,21 +306,23 @@ function handleLeaveCurrentRoom() {
 
 .avatar-wrapper {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--side-input-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s;
+  box-shadow: 0 0 0 1px var(--side-border);
+  transition: box-shadow 0.25s ease, transform 0.25s var(--ease-bounce);
 }
 
 .avatar-wrapper:hover {
-  opacity: 0.85;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px var(--side-accent);
 }
 
 .avatar-img {
@@ -257,21 +334,21 @@ function handleLeaveCurrentRoom() {
 .avatar-placeholder {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--side-text);
   user-select: none;
 }
 
 .avatar-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(8, 6, 16, 0.62);
   color: #fff;
   font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
 }
 
 .avatar-wrapper:hover .avatar-overlay {
@@ -294,16 +371,17 @@ function handleLeaveCurrentRoom() {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
   line-height: 1;
-  color: #fff;
-  opacity: 0.7;
+  color: var(--side-text-dim);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
 .btn-icon:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
+  color: var(--side-text);
+  background: var(--side-item-hover);
+  transform: translateY(-1px);
 }
 
 .connection-status {
@@ -311,14 +389,15 @@ function handleLeaveCurrentRoom() {
   font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #e67e22;
-  background: rgba(230, 126, 34, 0.1);
+  gap: 7px;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  transition: color 0.3s ease, background 0.3s ease;
 }
 
 .connection-status.connected {
-  color: #27ae60;
-  background: rgba(39, 174, 96, 0.1);
+  color: var(--success-text);
+  background: var(--success-bg);
 }
 
 .dot {
@@ -326,12 +405,29 @@ function handleLeaveCurrentRoom() {
   height: 8px;
   border-radius: 50%;
   background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: ld-dot-pulse 2.4s var(--ease-in-out) infinite;
+}
+
+.connection-status.connected .dot {
+  animation: ld-dot-pulse-on 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes ld-dot-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes ld-dot-pulse-on {
+  0% { box-shadow: 0 0 0 0 var(--success-border); }
+  70% { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 .my-section {
   padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--side-border);
+  border-bottom: 1px solid var(--side-border);
 }
 
 .my-requests-wrapper {
@@ -339,23 +435,24 @@ function handleLeaveCurrentRoom() {
 }
 
 .my-section .section-title {
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  opacity: 0.5;
+  letter-spacing: 0.06em;
+  color: var(--side-text-faint);
   margin-bottom: 8px;
 }
 
 .btn-my {
   margin-bottom: 6px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--side-border);
   font-size: 12px;
-  padding: 6px 8px;
+  padding: 7px 10px;
 }
 
 .btn-my:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--side-item-hover);
+  border-color: var(--side-border);
 }
 
 .btn-my:disabled {
@@ -366,7 +463,7 @@ function handleLeaveCurrentRoom() {
 /* 通知徽标 */
 .badge {
   display: inline-block;
-  background: #e74c3c;
+  background: var(--danger);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -374,7 +471,7 @@ function handleLeaveCurrentRoom() {
   height: 16px;
   line-height: 16px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   padding: 0 5px;
   margin-left: 4px;
 }
@@ -385,48 +482,59 @@ function handleLeaveCurrentRoom() {
 
 .btn-action {
   width: 100%;
-  padding: 8px;
-  background: #0f3460;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 9px 12px;
+  background: var(--side-btn-bg);
+  color: var(--side-text);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .btn-action:hover {
-  background: #1a5276;
+  background: var(--side-btn-bg-hover);
+  transform: translateY(-1px);
+}
+
+.btn-action:active {
+  transform: translateY(0);
 }
 
 .btn-admin {
   margin-top: 6px;
-  background: #1a5276;
-  border: 1px solid #3498db;
+  background: transparent;
+  border: 1px solid var(--side-accent);
+  color: var(--side-accent);
   font-size: 13px;
 }
 
 .btn-admin:hover {
-  background: #2c6f9c;
+  background: var(--side-btn-bg-hover);
 }
 
 .logout-area {
   padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--side-border);
 }
 
 .btn-logout {
   width: 100%;
   background: transparent;
-  color: #e74c3c;
-  border: 1px solid #e74c3c;
-  border-radius: 4px;
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
   padding: 8px 12px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .btn-logout:hover {
-  background: #e74c3c;
+  background: var(--danger);
   color: #fff;
+  transform: translateY(-1px);
 }
 </style>

@@ -160,42 +160,62 @@ function selectRoom(roomId: string, roomName: string) {
 
 .room-actions {
   flex-shrink: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--side-border);
   padding-top: 8px;
 }
 
 .section-title {
   padding: 0 20px;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  opacity: 0.5;
+  letter-spacing: 0.06em;
+  color: var(--side-text-faint);
   margin-bottom: 8px;
 }
 
 .room-item {
-  transition: background 0.15s;
+  position: relative;
+  margin: 1px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.18s ease;
+}
+
+.room-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  border-radius: var(--radius-pill);
+  background: var(--side-accent);
+  transition: height 0.28s var(--ease-out-expo);
 }
 
 .room-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--side-item-hover);
 }
 
 .room-item.active {
-  background: rgba(15, 52, 96, 0.6);
-  border-left: 3px solid #3498db;
+  background: var(--side-item-active);
+}
+
+.room-item.active::before {
+  height: 60%;
 }
 
 .room-item-main {
   flex: 1;
   min-width: 0;
   cursor: pointer;
-  padding: 10px 20px;
-  padding-right: 4px;
+  padding: 10px 16px 10px 18px;
 }
 
 .room-name {
   font-size: 14px;
   font-weight: 500;
+  color: var(--side-text);
 }
 
 .lock-icon {
@@ -204,14 +224,14 @@ function selectRoom(roomId: string, roomName: string) {
 
 .room-meta {
   font-size: 11px;
-  opacity: 0.5;
+  color: var(--side-text-faint);
   margin-top: 2px;
 }
 
 .empty-hint {
   padding: 20px;
   text-align: center;
-  opacity: 0.4;
+  color: var(--side-text-faint);
   font-size: 13px;
 }
 
@@ -223,46 +243,63 @@ function selectRoom(roomId: string, roomName: string) {
   padding-top: 0;
 }
 
+.create-panel {
+  animation: ld-slide-down 0.28s var(--ease-out-expo) both;
+}
+
 .btn-action {
   width: 100%;
-  padding: 8px;
-  background: #0f3460;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 9px 12px;
+  background: var(--side-btn-bg);
+  color: var(--side-text);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .btn-action:hover {
-  background: #1a5276;
+  background: var(--side-btn-bg-hover);
+  transform: translateY(-1px);
+}
+
+.btn-action:active {
+  transform: translateY(0);
 }
 
 .btn-refresh {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--side-border);
   font-size: 13px;
 }
 
 .btn-refresh:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--side-item-hover);
 }
 
 .panel-input {
   width: 100%;
   padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid var(--side-border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--side-input-bg);
+  color: var(--side-text);
   box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.panel-input:focus {
+  border-color: var(--side-accent);
+  background: var(--side-input-bg-focus);
 }
 
 .panel-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--side-text-faint);
 }
 
 .panel-actions {
@@ -271,42 +308,58 @@ function selectRoom(roomId: string, roomName: string) {
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  background: #27ae60;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .btn-cancel {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #999;
+  border: 1px solid var(--side-border);
+  color: var(--side-text-dim);
 }
 
 .btn-cancel:hover {
-  border-color: rgba(255, 255, 255, 0.6);
-  color: #fff;
+  border-color: var(--side-text-dim);
+  color: var(--side-text);
+  box-shadow: none;
+  transform: none;
 }
 
 .panel-textarea {
   width: 100%;
   padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid var(--side-border);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--side-input-bg);
+  color: var(--side-text);
   box-sizing: border-box;
   resize: none;
   font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.panel-textarea:focus {
+  border-color: var(--side-accent);
+  background: var(--side-input-bg-focus);
 }
 
 .panel-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--side-text-faint);
 }
 
 .force-join-label {
@@ -314,14 +367,14 @@ function selectRoom(roomId: string, roomName: string) {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #f39c12;
+  color: var(--warning-text);
   margin-bottom: 6px;
   cursor: pointer;
   user-select: none;
 }
 
 .force-join-checkbox {
-  accent-color: #f39c12;
+  accent-color: var(--warning);
   cursor: pointer;
 }
 </style>

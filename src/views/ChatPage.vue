@@ -28,6 +28,7 @@ import {
 } from '@/composables/useApi'
 import { fileBlobCache } from '@/utils/BlobCache'
 import { getBaseUrl } from '@/composables/useApi'
+import { useTheme } from '@/composables/useTheme'
 import type { ClientMessage, MessageElement, RoomMember } from '@/types/chat'
 import { RoleValue } from '@/types/chat'
 
@@ -50,6 +51,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const ws = useWebSocket()
+const { syncFromStorage } = useTheme()
 
 // ---- 面板可见性 ----
 const showFilesPanel = ref(false)
@@ -88,6 +90,8 @@ const loadingRooms = ref(false)
 // ======================== 初始化 ========================
 
 onMounted(() => {
+  // 同步登录页可能做过的主题切换
+  syncFromStorage()
   // 连接 WebSocket
   ws.connect()
   // 加载房间列表
@@ -775,6 +779,9 @@ watch(
           <p class="hint">或创建一个新房间</p>
         </div>
       </template>
+
+      <!-- 主区域柔光装饰 -->
+      <div class="main-glow" aria-hidden="true"></div>
     </main>
 
     <!-- ==================== 右键菜单 ==================== -->
@@ -861,15 +868,41 @@ watch(
 .chat-layout {
   display: flex;
   height: 100vh;
-  background: #f0f2f5;
+  background: var(--bg);
+  transition: background-color 0.5s var(--ease-in-out);
 }
 
 .main-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--bg-chat);
   min-width: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: background-color 0.5s var(--ease-in-out);
+}
+
+/* 主区域顶部柔光：极淡的品牌色径向晕染，营造层次而不抢眼 */
+.main-glow {
+  position: absolute;
+  z-index: -1;
+  top: -180px;
+  right: -120px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-glow), transparent 68%);
+  opacity: 0.5;
+  filter: blur(40px);
+  pointer-events: none;
+  animation: ld-orb-float 26s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes ld-orb-float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-40px, 50px) scale(1.12); }
 }
 
 .no-room-selected {
@@ -878,22 +911,31 @@ watch(
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #bbb;
+  color: var(--text-muted);
+  animation: ld-fade-in 0.6s var(--ease-out-expo) both;
 }
 
 .placeholder-icon {
   font-size: 64px;
   margin-bottom: 16px;
+  filter: drop-shadow(0 8px 20px var(--accent-glow));
+  animation: ld-float-soft 4s var(--ease-in-out) infinite;
+}
+
+@keyframes ld-float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 .no-room-selected p {
   margin: 4px 0;
   font-size: 16px;
+  color: var(--text-secondary);
 }
 
 .no-room-selected .hint {
   font-size: 13px;
-  opacity: 0.6;
+  color: var(--text-muted);
 }
 </style>
 
@@ -903,49 +945,42 @@ watch(
 .context-menu {
   position: fixed;
   z-index: 9999;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  min-width: 120px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  min-width: 132px;
+  padding: 4px;
   overflow: hidden;
+  transform-origin: top left;
+  animation: ld-menu-pop 0.18s var(--ease-out-expo) both;
+}
+
+@keyframes ld-menu-pop {
+  from { opacity: 0; transform: scale(0.9) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .context-menu-item {
-  padding: 10px 16px;
+  padding: 9px 14px;
   font-size: 13px;
+  color: var(--text);
   cursor: pointer;
-  transition: background 0.15s;
+  border-radius: var(--radius-xs);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
   user-select: none;
 }
 
 .context-menu-item:hover {
-  background: #f5f5f5;
+  background: var(--accent-soft);
+  transform: translateX(2px);
 }
 
 .context-menu-item.danger {
-  color: #e74c3c;
+  color: var(--danger-text);
 }
 
 .context-menu-item.danger:hover {
-  background: #fef0ef;
-}
-
-/* 自定义滚动条 */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--danger-bg);
 }
 </style>

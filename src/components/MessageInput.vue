@@ -296,20 +296,23 @@ function autoResize() {
 <style scoped>
 .input-area {
   padding: 16px 24px;
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 8px;
-  background: #fafafa;
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
   align-items: flex-end;
+  transition: background 0.5s var(--ease-in-out), border-color 0.5s var(--ease-in-out);
 }
 
 .btn-icon-input {
   width: 40px;
   height: 40px;
-  background: transparent;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 18px;
   cursor: pointer;
   display: flex;
@@ -318,15 +321,21 @@ function autoResize() {
   flex-shrink: 0;
   padding: 0;
   line-height: 1;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.2s var(--ease-bounce);
 }
 
 .btn-icon-input:hover:not(:disabled) {
-  background: #f0f2f5;
-  border-color: #ccc;
+  background: var(--accent-soft);
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+.btn-icon-input:active:not(:disabled) {
+  transform: translateY(0) scale(0.94);
 }
 
 .btn-icon-input:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -337,42 +346,57 @@ function autoResize() {
 .msg-input {
   flex: 1;
   padding: 10px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  color: var(--text);
+  background: var(--input-bg);
   outline: none;
   resize: none;
   font-family: inherit;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   max-height: 120px;
   min-height: 40px;
   line-height: 1.5;
   box-sizing: border-box;
 }
 
+.msg-input::placeholder {
+  color: var(--text-muted);
+}
+
 .msg-input:focus {
-  border-color: #0f3460;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+  background: var(--input-bg-hover);
 }
 
 .btn-send {
   padding: 10px 24px;
-  background: #0f3460;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
   height: 40px;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .btn-send:hover:not(:disabled) {
-  background: #1a5276;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px var(--accent-glow);
+}
+
+.btn-send:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn-send:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -384,11 +408,19 @@ function autoResize() {
   right: 0;
   display: flex;
   align-items: center;
-  padding: 6px 12px;
-  background: #eef3f8;
-  border-bottom: 1px solid #d0dbe8;
+  padding: 7px 14px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transform: translateY(-100%);
   gap: 8px;
+  animation: ld-slide-up-bar 0.25s var(--ease-out-expo) both;
+}
+
+@keyframes ld-slide-up-bar {
+  from { opacity: 0; transform: translateY(-80%); }
+  to { opacity: 1; transform: translateY(-100%); }
 }
 
 .reply-info {
@@ -401,19 +433,19 @@ function autoResize() {
 }
 
 .reply-label {
-  color: #0f3460;
+  color: var(--accent-text);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .reply-sender {
-  color: #333;
+  color: var(--text);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .reply-preview {
-  color: #888;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -424,13 +456,16 @@ function autoResize() {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  color: #999;
-  padding: 2px 4px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .reply-close:hover {
-  color: #333;
+  color: var(--text);
+  background: var(--surface-2-hover);
 }
 
 /* 禁言提示栏 */
@@ -439,25 +474,29 @@ function autoResize() {
   top: 0;
   left: 0;
   right: 0;
-  padding: 6px 16px;
-  background: #fff0f0;
-  color: #cc4444;
+  padding: 7px 16px;
+  background: var(--danger-bg);
+  color: var(--danger-text);
   font-size: 13px;
   text-align: center;
-  border-bottom: 1px solid #ffd5d5;
+  border-bottom: 1px solid var(--danger-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transform: translateY(-100%);
 }
 
 /* mention 下拉 - 全局样式 */
 :global(.mention-dropdown) {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: var(--shadow-lg);
   max-height: 200px;
   overflow-y: auto;
   z-index: 100;
   margin-bottom: 4px;
+  padding: 4px;
+  animation: ld-slide-down 0.2s var(--ease-out-expo) both;
 }
 
 :global(.mention-item) {
@@ -466,18 +505,19 @@ function autoResize() {
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  transition: background 0.15s;
+  border-radius: var(--radius-xs);
+  transition: background 0.15s ease;
 }
 
 :global(.mention-item:hover),
 :global(.mention-item.active) {
-  background: #eef3f8;
+  background: var(--accent-soft);
 }
 
 :global(.mention-name) {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -486,7 +526,7 @@ function autoResize() {
 
 :global(.mention-id) {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 </style>

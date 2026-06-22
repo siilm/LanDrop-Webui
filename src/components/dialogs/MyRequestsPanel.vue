@@ -222,26 +222,29 @@ onUnmounted(() => {
 
 <style scoped>
 .my-requests-panel {
-  background: #1e1e3a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 10px;
+  background: var(--surface-solid);
+  color: var(--side-text);
+  border: 1px solid var(--side-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
   min-width: 260px;
   max-height: 360px;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
   position: absolute;
-  left: 20px;
-  right: 20px;
+  left: 16px;
+  right: 16px;
   z-index: 100;
-  margin-top: 4px;
+  margin-top: 6px;
+  transform-origin: top center;
+  animation: ld-pop-in 0.28s var(--ease-out-expo) both;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 13px;
   font-weight: 600;
 }
@@ -249,47 +252,51 @@ onUnmounted(() => {
 .btn-close-sm {
   background: none;
   border: none;
-  color: #888;
+  color: var(--side-text-dim);
   cursor: pointer;
   padding: 2px 6px;
+  border-radius: var(--radius-xs);
   font-size: 14px;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .btn-close-sm:hover {
-  color: #fff;
+  color: var(--side-text);
+  transform: rotate(90deg);
 }
 
 .panel-loading {
   text-align: center;
-  opacity: 0.5;
+  color: var(--side-text-faint);
   padding: 16px 0;
   font-size: 12px;
 }
 
 .action-msg {
   font-size: 11px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
+  padding: 6px 8px;
+  background: var(--side-item-hover);
+  border-radius: var(--radius-xs);
   margin-bottom: 8px;
   text-align: center;
 }
 
 .section {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .section-title {
   font-size: 11px;
-  opacity: 0.6;
+  color: var(--side-text-faint);
   margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--side-border-soft);
 }
 
 .empty-hint {
   font-size: 11px;
-  opacity: 0.35;
+  color: var(--side-text-faint);
+  opacity: 0.7;
   padding: 6px 0;
 }
 
@@ -297,15 +304,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--side-item-hover);
   margin-bottom: 4px;
   font-size: 11px;
+  transition: background 0.18s ease;
 }
 
 .item-row:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--side-btn-bg);
 }
 
 .item-info {
@@ -325,7 +333,7 @@ onUnmounted(() => {
 .item-from,
 .item-msg {
   font-size: 10px;
-  opacity: 0.5;
+  color: var(--side-text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -340,24 +348,24 @@ onUnmounted(() => {
 
 .status-badge {
   font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
 .status-pending {
-  background: rgba(255, 193, 7, 0.15);
-  color: #ffc107;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .status-approved {
-  background: rgba(39, 174, 96, 0.15);
-  color: #27ae60;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .status-rejected {
-  background: rgba(192, 57, 43, 0.15);
-  color: #e74c3c;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .item-actions {
@@ -367,33 +375,33 @@ onUnmounted(() => {
 
 .btn-xs-accept,
 .btn-xs-reject {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .btn-xs-accept {
-  background: #27ae60;
+  background: var(--success);
   color: #fff;
 }
 
 .btn-xs-accept:hover {
-  background: #2ecc71;
+  transform: scale(1.12);
 }
 
 .btn-xs-reject {
-  background: #c0392b;
+  background: var(--danger);
   color: #fff;
 }
 
 .btn-xs-reject:hover {
-  background: #e74c3c;
+  transform: scale(1.12);
 }
 </style>

@@ -501,18 +501,24 @@ onMounted(() => {
 
 <style scoped>
 .manage-panel {
-  padding: 12px 24px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 14px 24px;
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+  animation: ld-slide-down 0.3s var(--ease-out-expo) both;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text);
 }
 
 .panel-header-actions {
@@ -526,38 +532,45 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-close:hover {
-  color: #333;
+  color: var(--text);
+  background: var(--surface-2-hover);
+  transform: rotate(90deg);
 }
 
 .btn-danger-sm {
   background: transparent;
-  border: 1px solid #e74c3c;
-  color: #e74c3c;
-  padding: 2px 8px;
-  border-radius: 4px;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 11px;
+  transition: background 0.18s ease, color 0.18s ease;
 }
 
 .btn-danger-sm:hover {
-  background: #e74c3c;
+  background: var(--danger);
   color: #fff;
 }
 
 .action-msg {
   font-size: 12px;
-  color: #27ae60;
+  color: var(--success-text);
   margin-bottom: 8px;
 }
 
 .panel-loading,
 .panel-empty {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   padding: 8px 0;
   text-align: center;
 }
@@ -565,7 +578,7 @@ onMounted(() => {
 .member-manage-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -574,13 +587,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  color: var(--text);
+  transition: background 0.18s ease;
 }
 
 .member-manage-item:hover {
-  background: #f0f2f5;
+  background: var(--surface-2-hover);
 }
 
 .member-name {
@@ -592,41 +607,41 @@ onMounted(() => {
 
 .member-userid {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   margin-left: 4px;
 }
 
 .member-role-badge {
   font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .badge-creator {
-  background: #ffe5b4;
-  color: #b85c00;
+  background: var(--role-creator-bg);
+  color: var(--role-creator-text);
 }
 
 .badge-admin {
-  background: #d4e6ff;
-  color: #0050b3;
+  background: var(--role-admin-bg);
+  color: var(--role-admin-text);
 }
 
 .badge-member {
-  background: #f2f2f2;
-  color: #666;
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
 }
 
 .badge-muted {
-  background: #ffe0e0;
-  color: #cc4444;
+  background: var(--role-muted-bg);
+  color: var(--role-muted-text);
 }
 
 .member-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
@@ -635,13 +650,15 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
   line-height: 1;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-sm-action:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 
 .btn-sm-danger {
@@ -649,20 +666,22 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
   line-height: 1;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-sm-danger:hover {
-  background: #fef0ef;
+  background: var(--danger-bg);
+  transform: translateY(-1px);
 }
 
 /* 加入申请审批 UI */
 .join-requests-section {
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
-  border-radius: 6px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   margin-bottom: 12px;
 }
@@ -670,7 +689,7 @@ onMounted(() => {
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #ad8b00;
+  color: var(--warning-text);
   margin-bottom: 8px;
 }
 
@@ -678,8 +697,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid #fff1b8;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--warning-border);
   font-size: 13px;
 }
 
@@ -689,17 +708,23 @@ onMounted(() => {
 
 .join-applicant {
   font-weight: 500;
-  color: #333;
+  color: var(--text);
   flex-shrink: 0;
 }
 
 .join-message {
-  color: #888;
+  color: var(--text-muted);
   font-size: 12px;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.invite-status-badge {
+  font-size: 11px;
+  color: var(--warning-text);
+  flex: 1;
 }
 
 .join-request-actions {
@@ -709,56 +734,58 @@ onMounted(() => {
 }
 
 .btn-sm-approve {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-  color: #52c41a;
-  padding: 2px 8px;
-  border-radius: 4px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 12px;
   line-height: 1.4;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-sm-approve:hover {
-  background: #52c41a;
+  background: var(--success);
   color: #fff;
-  border-color: #52c41a;
+  border-color: var(--success);
 }
 
 .btn-sm-reject {
-  background: #fff2f0;
-  border: 1px solid #ffccc7;
-  color: #ff4d4f;
-  padding: 2px 8px;
-  border-radius: 4px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 12px;
   line-height: 1.4;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-sm-reject:hover {
-  background: #ff4d4f;
+  background: var(--danger);
   color: #fff;
-  border-color: #ff4d4f;
+  border-color: var(--danger);
 }
 
 /* 头衔设置 - 内联编辑 */
 .dn-input-inline {
   flex: 1;
-  padding: 4px 8px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
   font-size: 13px;
+  color: var(--text);
+  background: var(--input-bg);
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   min-width: 0;
 }
 
 .dn-input-inline:focus {
-  border-color: #4096ff;
-  box-shadow: 0 0 0 2px rgba(64, 150, 255, 0.15);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
 }
 
 .btn-sm-icon {
@@ -766,20 +793,21 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
   line-height: 1;
+  transition: background 0.18s ease;
 }
 
 .btn-sm-icon:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-2-hover);
 }
 
 .btn-save:hover {
-  background: #f6ffed;
+  background: var(--success-bg);
 }
 
 .btn-cancel-icon:hover {
-  background: #fff2f0;
+  background: var(--danger-bg);
 }
 </style>

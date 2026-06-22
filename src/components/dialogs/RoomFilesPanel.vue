@@ -109,18 +109,24 @@ watch(
 
 <style scoped>
 .room-files-panel {
-  padding: 12px 24px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 14px 24px;
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+  animation: ld-slide-down 0.3s var(--ease-out-expo) both;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text);
 }
 
 .btn-close {
@@ -128,17 +134,23 @@ watch(
   border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-close:hover {
-  color: #333;
+  color: var(--text);
+  background: var(--surface-2-hover);
+  transform: rotate(90deg);
 }
 
 .panel-loading,
 .panel-empty {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   padding: 8px 0;
   text-align: center;
 }
@@ -146,7 +158,7 @@ watch(
 .file-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   max-height: 180px;
   overflow-y: auto;
 }
@@ -155,13 +167,14 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  transition: background 0.18s ease;
 }
 
 .file-item:hover {
-  background: #f0f2f5;
+  background: var(--surface-2-hover);
 }
 
 .file-name {
@@ -172,17 +185,19 @@ watch(
 }
 
 .file-link {
-  color: #3498db;
+  color: var(--accent-text);
   text-decoration: none;
+  transition: opacity 0.15s ease;
 }
 
 .file-link:hover {
   text-decoration: underline;
+  opacity: 0.85;
 }
 
 .file-size {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -190,15 +205,17 @@ watch(
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #e74c3c;
+  color: var(--danger-text);
   font-size: 14px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
   line-height: 1;
   flex-shrink: 0;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-file-delete:hover {
-  background: #fef0ef;
+  background: var(--danger-bg);
+  transform: scale(1.1);
 }
 </style>

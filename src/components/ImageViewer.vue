@@ -65,11 +65,14 @@ function handleBgClick() {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(6, 5, 12, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: zoom-out;
+  animation: ld-overlay-in 0.25s ease both;
 }
 
 .viewer-close {
@@ -80,7 +83,7 @@ function handleBgClick() {
   height: 40px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.16);
   color: #fff;
   font-size: 20px;
   cursor: pointer;
@@ -88,17 +91,21 @@ function handleBgClick() {
   align-items: center;
   justify-content: center;
   z-index: 10001;
+  transition: background 0.2s ease, transform 0.25s var(--ease-bounce);
 }
 
 .viewer-close:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.32);
+  transform: rotate(90deg);
 }
 
 .viewer-image {
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   cursor: zoom-out;
+  animation: ld-pop-in 0.4s var(--ease-out-expo) both;
 }
 </style>

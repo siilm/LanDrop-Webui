@@ -333,7 +333,8 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 
 <style scoped>
 .message-item {
-  max-width: 70%;
+  max-width: 72%;
+  animation: ld-bubble-in 0.4s var(--ease-out-expo) both;
 }
 
 .message-item.self {
@@ -344,7 +345,7 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 /* 自己消息的消息头：从右到左排列（username display_name 头像） */
@@ -358,13 +359,14 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--border);
 }
 
 .placeholder-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #0f3460;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   display: flex;
   align-items: center;
@@ -378,64 +380,49 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 .sender-name-badge {
   display: inline-block;
   padding: 1px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
-  font-weight: 500;
-  color: #000;
+  font-weight: 600;
   line-height: 1.6;
 }
 
-/* 他人消息：浅色背景 */
 .sender-name-badge.role-creator {
-  background: #FFE5B4;
+  background: var(--role-creator-bg);
+  color: var(--role-creator-text);
 }
 .sender-name-badge.role-admin {
-  background: #D4E6FF;
+  background: var(--role-admin-bg);
+  color: var(--role-admin-text);
 }
 .sender-name-badge.role-member {
-  background: #F2F2F2;
-}
-
-/* 自己消息：深色背景，白色文字 */
-.message-item.self .sender-name-badge.role-creator {
-  background: #664400;
-  color: #fff;
-}
-.message-item.self .sender-name-badge.role-admin {
-  background: #004466;
-  color: #fff;
-}
-.message-item.self .sender-name-badge.role-member {
-  background: #2A2A2A;
-  color: #fff;
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
 }
 
 .sender-username {
   font-size: 11px;
-  color: #999999;
-}
-
-.message-item.self .sender-username {
-  color: #999999;
+  color: var(--text-muted);
 }
 
 .message-bubble {
   padding: 10px 14px;
-  background: #f0f2f5;
-  border-radius: 12px;
+  background: var(--bubble-other);
+  color: var(--bubble-other-text);
+  border-radius: var(--radius-md);
+  border-bottom-left-radius: 4px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   word-break: break-word;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.5s var(--ease-in-out);
 }
 
 .message-item.self .message-bubble {
-  background: #0f3460;
-  color: #fff;
+  background: var(--bubble-self);
+  color: var(--bubble-self-text);
+  border-radius: var(--radius-md);
   border-bottom-right-radius: 4px;
-}
-
-.message-item:not(.self) .message-bubble {
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: var(--radius-md);
 }
 
 .text-content {
@@ -446,7 +433,7 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .message-item.self .message-footer {
@@ -455,7 +442,7 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 
 .message-time {
   font-size: 11px;
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .msg-status {
@@ -463,20 +450,15 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 }
 
 .msg-status.sending {
-  animation: pulse 1s ease-in-out infinite;
+  animation: ld-pulse 1s var(--ease-in-out) infinite;
 }
 
 .msg-status.sent {
-  color: #27ae60;
+  color: var(--success);
 }
 
 .msg-status.failed {
-  color: #e74c3c;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  color: var(--danger);
 }
 
 .image-wrapper {
@@ -486,19 +468,20 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 .msg-image {
   max-width: 100%;
   max-height: 300px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: block;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease, transform 0.25s var(--ease-out-expo);
 }
 
 .msg-image:hover {
-  opacity: 0.85;
+  opacity: 0.92;
+  transform: scale(1.01);
 }
 
 .image-name {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -506,17 +489,23 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
 }
 
 .message-item.self .image-name {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .file-link {
-  color: #3498db;
+  color: var(--accent-text);
   text-decoration: none;
   cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.message-item.self .file-link {
+  color: #fff;
 }
 
 .file-link:hover {
   text-decoration: underline;
+  opacity: 0.85;
 }
 
 .file-size {
@@ -528,36 +517,36 @@ function getReplyInfo(el: ReplyElement): { senderName: string; previewText: stri
   display: block;
   padding: 6px 10px;
   margin-bottom: 6px;
-  background: rgba(0, 0, 0, 0.05);
-  border-left: 3px solid #3498db;
-  border-radius: 4px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-xs);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .reply-sender-line {
-  color: #3498db;
+  color: var(--accent-text);
   font-size: 12px;
   margin-bottom: 2px;
 }
 
 .reply-text-line {
-  color: #666;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .message-item.self .reply-ref {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-left-color: rgba(255, 255, 255, 0.5);
 }
 
 .message-item.self .reply-sender-line {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .message-item.self .reply-text-line {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 </style>

@@ -79,18 +79,24 @@ watch(
 
 <style scoped>
 .announce-panel {
-  padding: 12px 24px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 14px 24px;
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+  animation: ld-slide-down 0.3s var(--ease-out-expo) both;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text);
 }
 
 .btn-close {
@@ -98,53 +104,75 @@ watch(
   border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .btn-close:hover {
-  color: #333;
+  color: var(--text);
+  background: var(--surface-2-hover);
+  transform: rotate(90deg);
 }
 
 .announce-input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  color: var(--text);
+  background: var(--input-bg);
   outline: none;
   resize: vertical;
   box-sizing: border-box;
   font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.announce-input::placeholder {
+  color: var(--text-muted);
 }
 
 .announce-input:focus {
-  border-color: #0f3460;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+  background: var(--input-bg-hover);
 }
 
 .announce-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  background: #27ae60;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-sm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .btn-sm:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .publish-msg {
   font-size: 12px;
-  color: #27ae60;
+  color: var(--success-text);
 }
 </style>

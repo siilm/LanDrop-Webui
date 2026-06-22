@@ -142,21 +142,23 @@ watch(
 .messages-area {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  scroll-behavior: smooth;
 }
 
 .load-more-hint {
   text-align: center;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   padding: 8px;
 }
 
 .load-more-hint.end {
-  color: #bbb;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .empty-msg-hint {
@@ -165,16 +167,18 @@ watch(
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #bbb;
+  color: var(--text-muted);
+  animation: ld-fade-in 0.6s var(--ease-out-expo) both;
 }
 
 .empty-msg-hint p {
   margin: 4px 0;
   font-size: 16px;
+  color: var(--text-secondary);
 }
 
 .empty-msg-hint .hint {
   font-size: 13px;
-  opacity: 0.6;
+  color: var(--text-muted);
 }
 </style>

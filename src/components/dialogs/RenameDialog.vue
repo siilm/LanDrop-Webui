@@ -77,50 +77,65 @@ async function handleRename() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9998;
+  animation: ld-overlay-in 0.25s ease both;
 }
 
 .modal-dialog {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 28px 32px;
   width: 380px;
   max-width: 90vw;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
+  animation: ld-pop-in 0.4s var(--ease-out-expo) both;
 }
 
 .modal-dialog h3 {
   margin: 0 0 12px;
   font-size: 18px;
+  color: var(--text);
 }
 
 .modal-hint {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 16px;
   line-height: 1.6;
 }
 
 .modal-input {
   width: 100%;
-  padding: 10px 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  color: var(--text);
+  background: var(--input-bg);
   outline: none;
   box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.modal-input::placeholder {
+  color: var(--text-muted);
 }
 
 .modal-input:focus {
-  border-color: #0f3460;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+  background: var(--input-bg-hover);
 }
 
 .modal-error {
-  color: #e74c3c;
+  color: var(--danger-text);
   font-size: 13px;
   margin-top: 8px;
 }
@@ -129,32 +144,41 @@ async function handleRename() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  background: #27ae60;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-sm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .btn-sm:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .btn-cancel {
   background: transparent;
-  border: 1px solid #ddd;
-  color: #999;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
 }
 
 .btn-cancel:hover {
-  border-color: #999;
-  color: #333;
+  border-color: var(--text-secondary);
+  color: var(--text);
+  box-shadow: none;
+  transform: none;
 }
 </style>

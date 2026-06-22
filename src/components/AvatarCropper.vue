@@ -106,19 +106,24 @@ function cancel() {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: ld-overlay-in 0.25s ease both;
 }
 
 .cropper-modal {
-  background: #1a1a2e;
-  border-radius: 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   width: 90vw;
   max-width: 520px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 22px;
+  box-shadow: var(--shadow-lg);
+  animation: ld-pop-in 0.4s var(--ease-out-expo) both;
 }
 
 .cropper-header {
@@ -131,12 +136,12 @@ function cancel() {
 .cropper-title {
   font-size: 18px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text);
 }
 
 .cropper-hint {
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .cropper-stage {
@@ -144,8 +149,8 @@ function cancel() {
   width: 100%;
   max-height: 420px;
   overflow: hidden;
-  border-radius: 8px;
-  background: #0f0f1e;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
 }
 
 .cropper-stage img {
@@ -162,29 +167,29 @@ function cancel() {
 
 .size-label {
   font-size: 13px;
-  color: #aaa;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .size-btn {
   padding: 6px 14px;
-  border: 1px solid #444;
-  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #ccc;
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .size-btn:hover {
-  border-color: #4a9eff;
-  color: #4a9eff;
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 .size-btn.active {
-  background: #4a9eff;
-  border-color: #4a9eff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  border-color: transparent;
   color: #fff;
 }
 
@@ -196,32 +201,35 @@ function cancel() {
 }
 
 .btn-cancel {
-  padding: 8px 20px;
-  border: 1px solid #555;
-  border-radius: 6px;
+  padding: 9px 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #aaa;
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .btn-cancel:hover {
-  border-color: #888;
-  color: #ddd;
+  border-color: var(--text-secondary);
+  color: var(--text);
 }
 
 .btn-confirm {
-  padding: 8px 20px;
+  padding: 9px 22px;
   border: none;
-  border-radius: 6px;
-  background: #4a9eff;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .btn-confirm:hover {
-  background: #3a8eef;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px var(--accent-glow);
 }
 </style>
