@@ -202,6 +202,10 @@ function handleMessage(data: any) {
     /** @提及推送 (v2.2) — 结构与 chat_message 相同，type="mention" */
     case 'mention': {
       const info = handleChatLikeMessage(data, chatStore)
+      // 记录未读 @提及 (v2.3)，用于侧栏 [有人@我] 标签与跳转
+      if (data.message_id && data.room_id) {
+        chatStore.addUnreadMention(data.room_id, data.message_id)
+      }
       // 通过事件总线通知 ChatPage，使其发送 message_read
       emitWsEvent('mention', data)
       // 若 @提及来自非当前房间 → 侧栏通知

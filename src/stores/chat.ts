@@ -24,6 +24,14 @@ export const useChatStore = defineStore('chat', () => {
   // ---- 加入申请 ----
   const joinRequests = reactive<JoinRequestRecord[]>([])
 
+  // ---- @提及追踪 (v2.3) ----
+  /** 存在未读 @提及的房间 ID 集合（用于侧栏 [有人@我] 标签） */
+  const unreadMentionRoomIds = ref<Set<string>>(new Set())
+  /** 每个房间的未读 @提及 message_id 列表（最新在前） */
+  const unreadMentionMessages = ref<Record<string, string[]>>({})
+  /** 跳转 @ 的当前索引（0 = 最新），重置时从 0 开始，点击一次递增一次 */
+  const mentionJumpIndex = ref<Record<string, number>>({})
+
   // ---- 待发送消息的确认 ----
   const pendingConfirmations = new Map<string, { timer: ReturnType<typeof setTimeout>; msg: ClientMessage }>()
 
@@ -72,6 +80,8 @@ export const useChatStore = defineStore('chat', () => {
     hasMoreHistory.value = true
     loadingHistory.value = false
     joinRequests.length = 0
+    // 进入房间时重置 @跳转索引，准备新一轮跳转
+    resetMentionJump(roomId)
   }
 
   // ---- 消息管理 ----
@@ -268,6 +278,51 @@ export const useChatStore = defineStore('chat', () => {
     if (idx >= 0) joinRequests.splice(idx, 1)
   }
 
+  // ---- @提及追踪 (v2.3) ----
+  function addUnreadMention(roomId: string, messageId: string) {
+    const ids = new Set(unreadMentionRoomIds.value)
+    ids.add(roomId)
+    unreadMentionRoomIds.value = ids
+
+    const msgs = { ...unreadMentionMessages.value }
+    if (!msgs[roomId]) msgs[roomId] = []
+    if (!msgs[roomId].includes(messageId)) {
+      msgs[roomId] = [messageId, ...msgs[roomId]]
+    }
+    unreadMentionMessages.value = msgs
+  }
+
+  function clearUnreadMentions(roomId: string) {
+    const ids = new Set(unreadMentionRoomIds.value)
+    ids.delete(roomId)
+    unreadMentionRoomIds.value = ids
+
+    const msgs = { ...unreadMentionMessages.value }
+    delete msgs[roomId]
+    unreadMentionMessages.value = msgs
+
+    const idx = { ...mentionJumpIndex.value }
+    delete idx[roomId]
+    mentionJumpIndex.value = idx
+  }
+
+  /** 获取下一个要跳转的 @提及 messageId，返回 null 表示已遍历完 */
+  function getNextMentionJump(roomId: string): { messageId: string; index: number; total: number } | null {
+    const msgs = unreadMentionMessages.value[roomId]
+    if (!msgs || msgs.length === 0) return null
+    const cur = mentionJumpIndex.value[roomId] ?? 0
+    if (cur >= msgs.length) return null
+    const result = { messageId: msgs[cur], index: cur, total: msgs.length }
+    // 推进索引，到达末尾后下次调用返回 null
+    mentionJumpIndex.value = { ...mentionJumpIndex.value, [roomId]: cur + 1 }
+    return result
+  }
+
+  /** 重置某个房间的 @跳转进度 */
+  function resetMentionJump(roomId: string) {
+    mentionJumpIndex.value = { ...mentionJumpIndex.value, [roomId]: 0 }
+  }
+
   // ---- 重置 ----
   function reset() {
     // 清除所有待确认
@@ -283,6 +338,9 @@ export const useChatStore = defineStore('chat', () => {
     members.length = 0
     roomMembers.clear()
     joinRequests.length = 0
+    unreadMentionRoomIds.value = new Set()
+    unreadMentionMessages.value = {}
+    mentionJumpIndex.value = {}
     wsConnected.value = false
     wsConnecting.value = false
     loadingHistory.value = false
@@ -302,6 +360,10 @@ export const useChatStore = defineStore('chat', () => {
     loadingHistory,
     hasMoreHistory,
     joinRequests,
+    // @提及追踪
+    unreadMentionRoomIds,
+    unreadMentionMessages,
+    mentionJumpIndex,
     // 计算属性
     currentRoom,
     currentMessages,
@@ -329,6 +391,11 @@ export const useChatStore = defineStore('chat', () => {
     // 加入申请
     setJoinRequests,
     removeJoinRequest,
+    // @提及追踪
+    addUnreadMention,
+    clearUnreadMentions,
+    getNextMentionJump,
+    resetMentionJump,
     // 重置
     reset,
   }

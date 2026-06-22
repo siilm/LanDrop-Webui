@@ -227,6 +227,7 @@ function getMemberNameById(userId: string): string {
 
 <template>
   <div
+    :id="'msg-' + message.message_id"
     class="message-item"
     :class="{ self: isSelf }"
     @contextmenu.prevent="handleContextMenu"

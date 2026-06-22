@@ -43,6 +43,10 @@ function handleJoinRoom() {
 }
 
 function selectRoom(roomId: string, roomName: string) {
+  // 进入房间时清除 [有人@我] 标签
+  if (chatStore.unreadMentionRoomIds.has(roomId)) {
+    chatStore.clearUnreadMentions(roomId)
+  }
   chatStore.switchRoom(roomId, roomName)
 }
 </script>
@@ -62,6 +66,7 @@ function selectRoom(roomId: string, roomName: string) {
         >
           <div class="room-item-main" @click="selectRoom(room.roomId, room.roomName)">
             <div class="room-name">
+              <span v-if="chatStore.unreadMentionRoomIds.has(room.roomId)" class="mention-badge">[有人@我] </span>
               {{ room.roomName }}
               <span v-if="room.hasPassword" class="lock-icon">🔒</span>
             </div>
@@ -216,6 +221,18 @@ function selectRoom(roomId: string, roomName: string) {
   font-size: 14px;
   font-weight: 500;
   color: var(--side-text);
+}
+
+.mention-badge {
+  color: var(--warning-text);
+  font-weight: 700;
+  font-size: 12px;
+  animation: ld-mention-pulse 1.5s var(--ease-in-out) infinite;
+}
+
+@keyframes ld-mention-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 .lock-icon {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { fetchRoomMessages } from '@/composables/useApi'
@@ -18,42 +18,111 @@ const chatStore = useChatStore()
 const authStore = useAuthStore()
 const messagesContainer = ref<HTMLDivElement | null>(null)
 const shouldAutoScroll = ref(true)
+/** 用户翻阅历史期间到达的新消息数 */
+const newMessageCount = ref(0)
 
-// 自动滚动到底部
-function scrollToBottom() {
+// ---- 滚动到底部 ----
+
+function scrollToBottom(smooth = false) {
   nextTick(() => {
-    if (messagesContainer.value && shouldAutoScroll.value) {
+    if (!messagesContainer.value) return
+    if (smooth) {
+      messagesContainer.value.scrollTo({
+        top: messagesContainer.value.scrollHeight,
+        behavior: 'smooth',
+      })
+    } else {
       messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+    shouldAutoScroll.value = true
+    newMessageCount.value = 0
+  })
+}
+
+// ---- 跳转到指定消息 ----
+
+function scrollToMessage(messageId: string) {
+  nextTick(() => {
+    const el = document.getElementById('msg-' + messageId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // 高亮闪烁
+      el.classList.add('msg-flash')
+      setTimeout(() => el.classList.remove('msg-flash'), 1600)
     }
   })
 }
 
-// 监听消息变化
+// ---- @提及跳转 (v2.3) ----
+
+/** 当前房间是否有可跳转的 @提及 */
+const hasMentionJumps = computed(() => {
+  if (!chatStore.currentRoomId) return false
+  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
+  return msgs && msgs.length > 0
+})
+
+/** 剩余未跳转的 @提及数 */
+const remainingMentionCount = computed(() => {
+  if (!chatStore.currentRoomId) return 0
+  const msgs = chatStore.unreadMentionMessages[chatStore.currentRoomId]
+  if (!msgs) return 0
+  const cur = chatStore.mentionJumpIndex[chatStore.currentRoomId] ?? 0
+  return Math.max(0, msgs.length - cur)
+})
+
+function jumpToNextMention() {
+  if (!chatStore.currentRoomId) return
+  const result = chatStore.getNextMentionJump(chatStore.currentRoomId)
+  if (result) {
+    scrollToMessage(result.messageId)
+  }
+  // 如果已经遍历完所有 @，getNextMentionJump 返回 null，按钮会自动隐藏
+}
+
+// ---- 消息监听 ----
+
 watch(
   () => chatStore.messages.length,
-  () => scrollToBottom(),
+  () => {
+    if (shouldAutoScroll.value) {
+      scrollToBottom()
+    } else {
+      newMessageCount.value++
+    }
+  },
 )
 
 watch(
   () => chatStore.currentRoomId,
   () => {
     shouldAutoScroll.value = true
+    newMessageCount.value = 0
     scrollToBottom()
   },
 )
 
-// 滚动检测
+// ---- 滚动检测 ----
+
 function handleScroll() {
   if (!messagesContainer.value) return
   const el = messagesContainer.value
   const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150
-  shouldAutoScroll.value = nearBottom
+  if (nearBottom && !shouldAutoScroll.value) {
+    // 用户滚回底部 → 清除计数
+    shouldAutoScroll.value = true
+    newMessageCount.value = 0
+  } else if (!nearBottom) {
+    shouldAutoScroll.value = false
+  }
 
   // 加载历史消息
   if (el.scrollTop < 50 && chatStore.hasMoreHistory && !chatStore.loadingHistory) {
     loadHistory()
   }
 }
+
+// ---- 历史加载 ----
 
 async function loadHistory() {
   if (!chatStore.currentRoomId || chatStore.loadingHistory || !chatStore.hasMoreHistory) return
@@ -76,7 +145,6 @@ async function loadHistory() {
   }
 }
 
-// 首次加载
 async function loadInitialMessages() {
   if (!chatStore.currentRoomId) return
   chatStore.loadingHistory = true
@@ -105,40 +173,88 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="messagesContainer"
-    class="messages-area"
-    @scroll="handleScroll"
-  >
-    <!-- 加载更多 -->
-    <div v-if="chatStore.loadingHistory" class="load-more-hint">
-      加载中...
-    </div>
-    <div v-else-if="!chatStore.hasMoreHistory && chatStore.messages.length > 0" class="load-more-hint end">
-      — 没有更多消息了 —
+  <div class="messages-wrapper">
+    <div
+      ref="messagesContainer"
+      class="messages-area"
+      @scroll="handleScroll"
+    >
+      <!-- 加载更多 -->
+      <div v-if="chatStore.loadingHistory" class="load-more-hint">
+        加载中...
+      </div>
+      <div v-else-if="!chatStore.hasMoreHistory && chatStore.messages.length > 0" class="load-more-hint end">
+        — 没有更多消息了 —
+      </div>
+
+      <!-- 消息列表 -->
+      <template v-for="msg in chatStore.messages" :key="msg.message_id">
+        <MessageBubble
+          :message="msg"
+          :is-self="msg.from === authStore.userId"
+          :current-room-id="chatStore.currentRoomId"
+          @context-menu="(e: MouseEvent) => emit('contextMenu', e, msg)"
+          @image-click="(el: MessageElement) => emit('imageClick', el)"
+          @file-click="(el: MessageElement) => emit('fileClick', el)"
+        />
+      </template>
+
+      <!-- 空状态 -->
+      <div v-if="chatStore.messages.length === 0 && !chatStore.loadingHistory" class="empty-msg-hint">
+        <p>暂无消息</p>
+        <p class="hint">发送第一条消息吧</p>
+      </div>
     </div>
 
-    <!-- 消息列表 -->
-    <template v-for="msg in chatStore.messages" :key="msg.message_id">
-      <MessageBubble
-        :message="msg"
-        :is-self="msg.from === authStore.userId"
-        :current-room-id="chatStore.currentRoomId"
-        @context-menu="(e: MouseEvent) => emit('contextMenu', e, msg)"
-        @image-click="(el: MessageElement) => emit('imageClick', el)"
-        @file-click="(el: MessageElement) => emit('fileClick', el)"
-      />
-    </template>
+    <!-- ================ 悬浮按钮 (FABs) ================ -->
+    <div class="fab-stack">
+      <!-- 新消息通知 -->
+      <Transition name="fab-pop">
+        <button
+          v-if="newMessageCount > 0"
+          class="fab fab--new-msgs"
+          @click="scrollToBottom(true)"
+        >
+          <span class="fab-icon">↓</span>
+          <span class="fab-label">{{ newMessageCount }} 条新消息</span>
+        </button>
+      </Transition>
 
-    <!-- 空状态 -->
-    <div v-if="chatStore.messages.length === 0 && !chatStore.loadingHistory" class="empty-msg-hint">
-      <p>暂无消息</p>
-      <p class="hint">发送第一条消息吧</p>
+      <!-- 回到底部（翻阅历史时始终可见，有新消息时被上面的替代） -->
+      <Transition name="fab-pop">
+        <button
+          v-if="!shouldAutoScroll && newMessageCount === 0"
+          class="fab fab--back-bottom"
+          @click="scrollToBottom(true)"
+        >
+          <span class="fab-icon">↓</span>
+        </button>
+      </Transition>
+
+      <!-- 跳转到 @提及 -->
+      <Transition name="fab-pop">
+        <button
+          v-if="hasMentionJumps && remainingMentionCount > 0"
+          class="fab fab--jump-mention"
+          @click="jumpToNextMention"
+        >
+          <span class="fab-icon">@</span>
+          <span class="fab-label">{{ remainingMentionCount }}</span>
+        </button>
+      </Transition>
     </div>
   </div>
 </template>
 
 <style scoped>
+.messages-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .messages-area {
   flex: 1;
   overflow-y: auto;
@@ -180,5 +296,137 @@ watch(
 .empty-msg-hint .hint {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* ================================================================
+   悬浮按钮堆叠 (FAB stack)
+   ================================================================ */
+.fab-stack {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.fab {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border) inset;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform 0.2s var(--ease-bounce), box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-strong) inset;
+}
+
+.fab:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.fab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fab-label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ― 新消息通知 ― */
+.fab--new-msgs {
+  padding: 8px 16px;
+  background: var(--surface-solid);
+  color: var(--accent-text);
+}
+
+.fab--new-msgs .fab-icon {
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  color: #fff;
+}
+
+/* ― 回到底部 ― */
+.fab--back-bottom {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-solid);
+  color: var(--text-secondary);
+}
+
+.fab--back-bottom .fab-icon {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+
+/* ― 跳转到 @ ― */
+.fab--jump-mention {
+  padding: 8px 14px;
+  background: var(--surface-solid);
+  color: var(--warning-text);
+}
+
+.fab--jump-mention .fab-icon {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 13px;
+}
+
+.fab--jump-mention .fab-label {
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ― 共用出入动画 ― */
+.fab-pop-enter-active {
+  transition: opacity 0.28s var(--ease-out-expo), transform 0.32s var(--ease-out-expo);
+}
+.fab-pop-leave-active {
+  transition: opacity 0.18s ease, transform 0.22s var(--ease-in-out);
+}
+.fab-pop-enter-from {
+  opacity: 0;
+  transform: translateY(12px) scale(0.85);
+}
+.fab-pop-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+}
+</style>
+
+<!-- 全局：@消息高亮闪烁 (不受 scoped 限制) -->
+<style>
+.msg-flash {
+  animation: msg-flash-anim 1.6s var(--ease-in-out);
+}
+
+@keyframes msg-flash-anim {
+  0% { box-shadow: 0 0 0 4px var(--warning-border); background: var(--warning-bg); border-radius: var(--radius-sm); }
+  100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
 }
 </style>
