@@ -23,6 +23,19 @@ const emit = defineEmits<{
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
+// ---- 公告消息 (v2.5) ----
+const isAnnouncement = computed(() => props.message.msg_type === 'announce')
+
+/** 公告正文：从 content / 文本元素提取并去除 "[公告] " 前缀 */
+const announcementText = computed(() => {
+  let text = props.message.content || ''
+  if (!text && props.message.elements) {
+    const textEl = props.message.elements.find((e) => e.type === 'text') as { content?: string } | undefined
+    text = textEl?.content || ''
+  }
+  return text.replace(/^\[公告\]\s*/, '')
+})
+
 // 消息发送者的房间成员信息（用于显示头衔和头像）
 // 显式依赖 memberList.length 确保 roomMembers 发生变化时重新计算
 const senderMember = computed(() => {
@@ -237,7 +250,27 @@ function jumpToReplySource(messageId: string) {
 </script>
 
 <template>
+  <!-- ============ 公告卡片 (v2.5) ============ -->
   <div
+    v-if="isAnnouncement"
+    :id="'msg-' + message.message_id"
+    class="message-item is-announce"
+    @contextmenu.prevent="handleContextMenu"
+  >
+    <div class="announce-card">
+      <div class="announce-card-head">
+        <span class="announce-card-icon">📢</span>
+        <span class="announce-card-label">公告</span>
+        <span class="announce-card-from">{{ senderDisplayName }}</span>
+        <span class="announce-card-time">{{ formattedTime }}</span>
+      </div>
+      <div class="announce-card-body">{{ announcementText }}</div>
+    </div>
+  </div>
+
+  <!-- ============ 普通消息 ============ -->
+  <div
+    v-else
     :id="'msg-' + message.message_id"
     class="message-item"
     :class="{ self: isSelf }"
@@ -376,6 +409,72 @@ function jumpToReplySource(messageId: string) {
 
 .message-item:not(.self) {
   align-items: flex-start;
+}
+
+/* ===== 公告卡片 (v2.5) ===== */
+.message-item.is-announce {
+  align-self: center;
+  align-items: stretch;
+  max-width: 86%;
+  width: 100%;
+}
+
+.announce-card {
+  border: 1px solid var(--warning-border);
+  background:
+    linear-gradient(0deg, var(--warning-bg), var(--warning-bg)),
+    var(--surface-solid);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.announce-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--warning);
+}
+
+.announce-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.announce-card-icon {
+  font-size: 15px;
+}
+
+.announce-card-label {
+  font-weight: 700;
+  color: var(--warning-text);
+  letter-spacing: 0.04em;
+}
+
+.announce-card-from {
+  color: var(--text-secondary);
+}
+
+.announce-card-time {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.announce-card-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-header {

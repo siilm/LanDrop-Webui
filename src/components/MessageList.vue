@@ -337,6 +337,9 @@ onUnmounted(() => {
   unsubMention()
   clearTimeout(savePosTimer)
 })
+
+// 暴露给父组件：跳转到指定消息（滚动 + 高亮闪烁），供公告栏定位使用
+defineExpose({ jumpToMessage: scrollToMessage })
 </script>
 
 <template>

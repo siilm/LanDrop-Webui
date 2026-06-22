@@ -36,6 +36,7 @@ import { RoleValue } from '@/types/chat'
 import Sidebar from '@/components/Sidebar.vue'
 import ChatHeader from '@/components/ChatHeader.vue'
 import MessageList from '@/components/MessageList.vue'
+import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import MessageInput from '@/components/MessageInput.vue'
 import ImageViewer from '@/components/ImageViewer.vue'
 import AvatarCropper from '@/components/AvatarCropper.vue'
@@ -53,6 +54,12 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 const ws = useWebSocket()
 const { syncFromStorage } = useTheme()
+
+// 公告栏 → 消息列表 跳转
+const messageListRef = ref<InstanceType<typeof MessageList> | null>(null)
+function onAnnounceJump(messageId: string) {
+  messageListRef.value?.jumpToMessage(messageId)
+}
 
 // ---- 面板可见性 ----
 const showFilesPanel = ref(false)
@@ -784,8 +791,12 @@ watch(
           @close="showAnnouncePanel = false"
         />
 
+        <!-- 公告悬浮栏（顶栏下方） -->
+        <AnnouncementBanner @jump="onAnnounceJump" />
+
         <!-- 消息列表 -->
         <MessageList
+          ref="messageListRef"
           @context-menu="handleContextMenu"
           @image-click="handleImageClick"
           @file-click="handleFileClick"

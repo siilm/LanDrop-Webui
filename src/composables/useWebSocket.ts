@@ -116,6 +116,7 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
       elements = []
     }
   }
+  const msgType = data.type === 'announce' ? 'announce' : undefined
   // 收信人必须在目标房间内才将消息推入该房间的消息列表
   if (data.room_id && data.room_id === chatStore.currentRoomId) {
     const matched = chatStore.confirmByEcho({
@@ -127,6 +128,7 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
       file: data.file,
       timestamp: data.timestamp,
       room_id: data.room_id,
+      msg_type: msgType,
     })
     if (!matched) {
       chatStore.pushMessage({
@@ -138,6 +140,7 @@ function handleChatLikeMessage(data: any, chatStore: ReturnType<typeof useChatSt
         file: data.file,
         timestamp: data.timestamp,
         room_id: data.room_id,
+        msg_type: msgType,
       })
     }
   }

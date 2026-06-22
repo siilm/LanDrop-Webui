@@ -287,7 +287,14 @@ export async function fetchRoomMessages(
   if (limit != null) params.set('limit', String(limit))
   const qs = params.toString()
   const path = qs ? `/rooms/${roomId}/messages?${qs}` : `/rooms/${roomId}/messages`
-  return apiFetch<{ messages: ChatMessage[] }>(path)
+  const res = await apiFetch<{ messages: ChatMessage[] }>(path)
+  // 归一化：历史项的 type=announce → msg_type；created_at → timestamp
+  const messages = (res.messages || []).map((m: any) => ({
+    ...m,
+    msg_type: m.msg_type || (m.type === 'announce' ? 'announce' : undefined),
+    timestamp: m.timestamp != null ? Number(m.timestamp) : (m.created_at != null ? Number(m.created_at) : Date.now()),
+  }))
+  return { messages }
 }
 
 export async function deleteMessage(messageId: string): Promise<{ status: string }> {

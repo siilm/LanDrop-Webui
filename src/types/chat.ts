@@ -59,6 +59,8 @@ export interface ChatMessage {
   created_at?: number
   status?: string
   room_id?: string
+  /** 消息类型：'announce' 为公告（特殊卡片渲染 + 顶栏悬浮展示）；其余为普通消息 (v2.5) */
+  msg_type?: string
 }
 
 /** 客户端本地扩展的消息状态 */

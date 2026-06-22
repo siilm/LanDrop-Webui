@@ -92,6 +92,11 @@ export const useChatStore = defineStore('chat', () => {
     }))
   })
 
+  /** 当前房间内的公告消息，最新在前（用于顶栏悬浮展示）(v2.5) */
+  const announcements = computed(() =>
+    messages.filter((m) => m.msg_type === 'announce').slice().reverse(),
+  )
+
   // ---- 房间管理 ----
   function setRooms(list: RoomInfo[]) {
     rooms.length = 0
@@ -451,6 +456,7 @@ export const useChatStore = defineStore('chat', () => {
     currentRoom,
     currentMessages,
     memberList,
+    announcements,
     // 房间
     setRooms,
     upsertRoom,
