@@ -7,13 +7,13 @@ import { useWebSocket, onWsEvent } from '@/composables/useWebSocket'
 import {
   fetchMyRooms,
   fetchRoomMembers,
-  uploadFile as uploadFileApi,
   uploadRoomImage,
   uploadAvatar as uploadAvatarApi,
+  uploadFileInit,
+  uploadFileChunk,
+  uploadFileComplete,
+  uploadFileStatus,
   computeFileSha256,
-  computeChunkSha256,
-  checkFileExists,
-  verifyFileChunks,
   dissolveRoom,
   downloadFileViaJwt,
   forceJoinRoom,
@@ -389,64 +389,37 @@ async function handleSendFile(files: FileList | File[]) {
   const fileList = Array.from(files)
   for (const file of fileList) {
     try {
-      // 尝试秒传（instant upload）
       const sha256 = await computeFileSha256(file)
-      const checkRes = await checkFileExists({
-        file_name: file.name,
-        file_size: file.size,
-        sha256,
-      })
+      const initRes = await uploadFileInit(chatStore.currentRoomId, file.name, file.size, sha256)
 
-      let fileId: string
-      if (checkRes.exists && checkRes.file_id) {
-        fileId = checkRes.file_id
+      // 秒传命中：服务端已创建完整文件消息，无需额外操作
+      if (initRes.status === 'instant') continue
 
-        // 大文件需要头尾验证
-        if (file.size >= 10 * 1024 * 1024) {
-          const headEnd = Math.min(256 * 1024, file.size)
-          const tailStart = Math.max(0, file.size - 256 * 1024)
-          const headSha256 = await computeChunkSha256(file, 0, headEnd)
-          const tailSha256 = await computeChunkSha256(file, tailStart, file.size)
-
-          const verifyRes = await verifyFileChunks({
-            file_id: fileId,
-            sha256,
-            file_name: file.name,
-            file_size: file.size,
-            head_chunk_sha256: headSha256,
-            tail_chunk_sha256: tailSha256,
-          })
-
-          if (!verifyRes.verified) {
-            // 验证失败，回退到普通上传
-            const uploadRes = await uploadFileApi(file, chatStore.currentRoomId)
-            fileId = uploadRes.file_id
+      // 需上传：分片发送
+      const CHUNK = 512 * 1024 // 512 KB per chunk
+      let offset = 0
+      while (offset < file.size) {
+        const end = Math.min(offset + CHUNK, file.size)
+        const chunk = file.slice(offset, end)
+        // 冲突时自动重对齐
+        try {
+          const res = await uploadFileChunk(initRes.upload_id!, chunk, offset, file.size)
+          offset = Number(res.received)
+        } catch (e: any) {
+          if (e?.message?.includes('offset_mismatch')) {
+            // 查询服务端期望的偏移并重对齐
+            const status = await uploadFileStatus(initRes.upload_id!)
+            offset = Number(status.received)
+          } else {
+            throw e
           }
         }
-      } else {
-        // 普通上传
-        const uploadRes = await uploadFileApi(file, chatStore.currentRoomId)
-        fileId = uploadRes.file_id
       }
-
-      // 发送文件消息
-      const elements: MessageElement[] = [
-        {
-          type: 'file',
-          file_id: fileId,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-        },
-      ]
-      chatStore.addOutgoingMessage({
-        roomId: chatStore.currentRoomId,
-        elements,
-        from: authStore.userId,
-      })
-      ws.sendChatMessage('', chatStore.currentRoomId, elements)
+      // 完成上传（服务端校验 SHA-256，占位消息自动转为正式文件消息）
+      await uploadFileComplete(initRes.upload_id!)
     } catch (e) {
       console.warn('[ChatPage] 文件发送失败:', e)
+      alert('文件上传失败: ' + ((e as any)?.message || '未知错误'))
     }
   }
 }

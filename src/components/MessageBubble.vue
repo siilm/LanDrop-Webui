@@ -328,7 +328,15 @@ function jumpToReplySource(messageId: string) {
 
           <!-- 文件 -->
           <div v-else-if="el.type === 'file'" class="file-wrapper">
+            <!-- 上传中占位消息 (v3.0) -->
+            <div v-if="(el as any).uploading || message.status === 'uploading'" class="file-uploading">
+              <span class="file-uploading-icon">⏳</span>
+              <span class="file-uploading-name">{{ el.file_name }}</span>
+              <span class="file-uploading-hint">上传中...</span>
+            </div>
+            <!-- 正常文件 -->
             <a
+              v-else
               href="javascript:void(0)"
               class="file-link"
               @click="handleFileDownload(el)"
@@ -659,6 +667,33 @@ function jumpToReplySource(messageId: string) {
 .message-item.self .mention-tag.mention-all {
   background: rgba(247, 185, 85, 0.25);
   color: #ffe5b0;
+}
+
+.file-uploading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  opacity: 0.65;
+}
+
+.file-uploading-icon {
+  font-size: 15px;
+  animation: ld-spin 1.5s linear infinite;
+}
+
+.file-uploading-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.file-uploading-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .file-link {

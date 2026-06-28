@@ -382,42 +382,55 @@ export async function fetchInvitesToMe(): Promise<InviteRecord[]> {
 
 // ======================== 文件 ========================
 
-export async function uploadFile(
-  file: File,
-  roomId?: string,
-): Promise<{ file_id: string; file_name: string; file_size: string; status: string }> {
-  const formData = new FormData()
-  formData.append('file', file)
-  if (roomId) formData.append('room_id', roomId)
-  return apiFetch('/files/upload', {
+// ======================== 文件上传（v3.0 会话式断点续传） ========================
+
+/** 初始化上传 / 秒传检测 */
+export async function uploadFileInit(
+  roomId: string,
+  fileName: string,
+  fileSize: number,
+  sha256: string,
+): Promise<{ status: 'instant' | 'upload_required'; upload_id?: string; file_id: string; message_id: string; received?: string }> {
+  return apiFetch('/files/upload/init', {
     method: 'POST',
-    body: formData,
+    body: JSON.stringify({ room_id: roomId, file_name: fileName, file_size: fileSize, sha256 }),
   })
 }
 
-export async function checkFileExists(params: {
-  file_name: string
-  file_size: number
-  sha256: string
-}): Promise<{ exists: boolean; file_id?: string }> {
-  return apiFetch<{ exists: boolean; file_id?: string }>('/files/check', {
-    method: 'POST',
-    body: JSON.stringify(params),
+/** 查询已接收偏移（用于断点续传） */
+export async function uploadFileStatus(uploadId: string): Promise<{ received: string; file_size: string; status: string }> {
+  return apiFetch(`/files/upload/${uploadId}/status`)
+}
+
+/**
+ * 上传一个分片
+ * @param data 原始分片字节（ArrayBuffer / Blob）
+ * @param start 起始偏移（字节）
+ * @param total 文件总大小
+ */
+export async function uploadFileChunk(
+  uploadId: string,
+  data: ArrayBuffer | Blob,
+  start: number,
+  total: number,
+  onProgress?: (sent: number) => void,
+): Promise<{ received: string; file_size: string }> {
+  const end = Math.min(start + (data instanceof Blob ? data.size : data.byteLength) - 1, total - 1)
+  return apiFetch<{ received: string; file_size: string }>(`/files/upload/${uploadId}`, {
+    method: 'PUT',
+    headers: { 'Content-Range': `bytes ${start}-${end}/${total}` },
+    body: data as any,
   })
 }
 
-export async function verifyFileChunks(params: {
-  file_id: string
-  sha256: string
-  file_name: string
-  file_size: number
-  head_chunk_sha256: string
-  tail_chunk_sha256: string
-}): Promise<{ verified: boolean; file_id?: string }> {
-  return apiFetch<{ verified: boolean; file_id?: string }>('/files/verify', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  })
+/** 完成上传（服务端校验 SHA-256，占位消息转正式文件消息） */
+export async function uploadFileComplete(uploadId: string): Promise<{ status: string; file_id: string; message_id: string }> {
+  return apiFetch(`/files/upload/${uploadId}/complete`, { method: 'POST' })
+}
+
+/** 取消上传（删临时分片 + 占位消息标记中断） */
+export async function uploadFileCancel(uploadId: string): Promise<{ status: string }> {
+  return apiFetch(`/files/upload/${uploadId}`, { method: 'DELETE' })
 }
 
 export async function fetchRoomFiles(roomId: string): Promise<{ files: RoomFileItem[] }> {
