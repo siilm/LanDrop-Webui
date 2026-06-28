@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { fileBlobCache } from '@/utils/BlobCache'
 import { getBaseUrl, fetchFileBlob } from '@/composables/useApi'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   message: ClientMessage
@@ -140,7 +141,6 @@ async function loadAvatarBlob(userId: string) {
 
 // ===== 头像 blob 缓存 =====
 import { avatarBlobCache } from '@/utils/BlobCache'
-import SvgIcon from '@/components/SvgIcon.vue'
 
 const formattedTime = computed(() => {
   const d = new Date(props.message.timestamp || Date.now())
