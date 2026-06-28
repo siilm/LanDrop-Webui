@@ -348,13 +348,19 @@ function jumpToReplySource(messageId: string) {
               <span class="file-uploading-icon">⏳</span>
               <div class="file-uploading-info">
                 <span class="file-uploading-name">{{ el.file_name }}</span>
-                <div class="file-progress-track">
-                  <div
-                    class="file-progress-fill"
-                    :style="{ width: uploadProgressPct + '%' }"
-                  ></div>
-                </div>
-                <span class="file-uploading-pct">{{ uploadProgressPct }}%</span>
+                <!-- 上传者本人：进度条 + 百分比 -->
+                <template v-if="isSelf">
+                  <div class="file-progress-track" :class="{ 'file-progress-track--self': isSelf }">
+                    <div
+                      class="file-progress-fill"
+                      :class="{ 'file-progress-fill--self': isSelf }"
+                      :style="{ width: uploadProgressPct + '%' }"
+                    ></div>
+                  </div>
+                  <span class="file-uploading-pct">{{ uploadProgressPct }}%</span>
+                </template>
+                <!-- 其它成员：仅文字提示 -->
+                <span v-else class="file-uploading-hint">文件正在上传…</span>
               </div>
             </div>
             <!-- 正常文件 -->
@@ -781,6 +787,31 @@ function jumpToReplySource(messageId: string) {
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* 自己气泡中的上传进度（紫色泡：轨道浅白，填充反色） */
+.file-progress-track--self {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.file-progress-fill--self {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.95));
+}
+
+.file-progress-fill--self::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(123, 111, 192, 0.35) 40%,
+    rgba(123, 111, 192, 0.5) 60%,
+    transparent 100%
+  );
+}
+
+/* 他人看到的上传中提示文字 */
+.file-uploading-hint {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .file-link {
