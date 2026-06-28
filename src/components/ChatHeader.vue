@@ -50,7 +50,7 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
         title="管理"
         @click="emit('toggleManage')"
       >
-        <SvgIcon name="sync" :size="17" />
+        <SvgIcon name="settings" :size="17" />
       </button>
       <!-- 邀请 -->
       <button class="btn-header-icon" title="邀请用户" @click="emit('toggleInvite')">

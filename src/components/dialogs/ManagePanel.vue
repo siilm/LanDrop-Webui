@@ -340,7 +340,7 @@ onMounted(() => {
 <template>
   <div v-if="visible" class="manage-panel">
     <div class="panel-header">
-      <span><SvgIcon name="sync" :size="16" /> 房间管理</span>
+      <span><SvgIcon name="settings" :size="16" /> 房间管理</span>
       <div class="panel-header-actions">
         <button
           v-if="isCreator && chatStore.currentRoomId !== 'PUBLIC'"

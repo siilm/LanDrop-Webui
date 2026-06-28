@@ -77,7 +77,7 @@ function handleClearAllData() {
         <div class="settings-panel">
           <!-- 头部 -->
           <div class="panel-header">
-            <span><SvgIcon name="sync" :size="18" /> 设置</span>
+            <span><SvgIcon name="self_settings" :size="18" /> 设置</span>
             <button class="btn-close" @click="emit('close')" title="关闭">×</button>
           </div>
 
@@ -144,10 +144,11 @@ function handleClearAllData() {
               <div class="section-title">💾 数据</div>
               <div class="info-actions">
                 <button class="btn-sm btn-sm--danger" @click="handleClearCache" :disabled="clearing">
-                  {{ clearing ? '清除中...' : '<SvgIcon name="delete" :size="14" /> 清除本地缓存' }}
+                  <template v-if="clearing">清除中...</template>
+                  <template v-else><SvgIcon name="delete" :size="14" /> 清除本地缓存</template>
                 </button>
                 <button class="btn-sm btn-sm--danger" @click="handleClearAllData">
-                  ⚠️ 清除所有本地数据
+                  <SvgIcon name="dangerous" :size="14" /> 清除所有本地数据
                 </button>
               </div>
               <div v-if="clearMsg" class="clear-msg">{{ clearMsg }}</div>

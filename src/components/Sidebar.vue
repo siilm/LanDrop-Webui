@@ -153,7 +153,7 @@ function handleLeaveCurrentRoom() {
           </div>
           <div class="user-actions">
             <button class="btn-icon" title="设置" @click="emit('openSettings')">
-              ⚙️
+              <SvgIcon name="self_settings" :size="16" />
             </button>
           </div>
         </div>
@@ -195,7 +195,7 @@ function handleLeaveCurrentRoom() {
         class="btn-action btn-admin"
         @click="emit('openAdmin')"
       >
-        <SvgIcon name="sync" :size="14" /> 系统管理
+        <SvgIcon name="settings" :size="14" /> 系统管理
       </button>
     </div>
 
