@@ -77,7 +77,7 @@ function handleClearAllData() {
         <div class="settings-panel">
           <!-- 头部 -->
           <div class="panel-header">
-            <span><SvgIcon name="self_settings" :size="18" /> 设置</span>
+            <span><SvgIcon name="self_settings" :size="22" inline /> 设置</span>
             <button class="btn-close" @click="emit('close')" title="关闭">×</button>
           </div>
 
@@ -106,8 +106,8 @@ function handleClearAllData() {
                 </div>
               </div>
               <div class="info-actions">
-                <button class="btn-sm" @click="emit('rename')"><SvgIcon name="edit" :size="14" /> 更改用户名</button>
-                <button class="btn-sm" @click="emit('uploadAvatar')"><SvgIcon name="image_arrow_up" :size="14" /> 更改头像</button>
+                <button class="btn-sm" @click="emit('rename')"><SvgIcon name="edit" :size="18" inline /> 更改用户名</button>
+                <button class="btn-sm" @click="emit('uploadAvatar')"><SvgIcon name="image_arrow_up" :size="18" inline /> 更改头像</button>
               </div>
             </section>
 
@@ -145,10 +145,10 @@ function handleClearAllData() {
               <div class="info-actions">
                 <button class="btn-sm btn-sm--danger" @click="handleClearCache" :disabled="clearing">
                   <template v-if="clearing">清除中...</template>
-                  <template v-else><SvgIcon name="delete" :size="14" /> 清除本地缓存</template>
+                  <template v-else><SvgIcon name="delete" :size="18" inline /> 清除本地缓存</template>
                 </button>
                 <button class="btn-sm btn-sm--danger" @click="handleClearAllData">
-                  <SvgIcon name="dangerous" :size="14" /> 清除所有本地数据
+                  <SvgIcon name="dangerous" :size="18" inline /> 清除所有本地数据
                 </button>
               </div>
               <div v-if="clearMsg" class="clear-msg">{{ clearMsg }}</div>

@@ -41,7 +41,7 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
     <div v-if="chatStore.currentRoomId" class="header-actions">
       <!-- 文件 -->
       <button class="btn-header-icon" title="房间文件" @click="emit('toggleFiles')">
-        <SvgIcon name="download" :size="17" />
+        <SvgIcon name="common_files" :size="20" />
       </button>
       <!-- 管理（仅管理员/房间管理员/全局管理员） -->
       <button
@@ -50,11 +50,11 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
         title="管理"
         @click="emit('toggleManage')"
       >
-        <SvgIcon name="settings" :size="17" />
+        <SvgIcon name="settings" :size="20" />
       </button>
       <!-- 邀请 -->
       <button class="btn-header-icon" title="邀请用户" @click="emit('toggleInvite')">
-        <SvgIcon name="group_add" :size="17" />
+        <SvgIcon name="group_add" :size="20" />
       </button>
       <!-- 公告（仅管理员/房间管理员/全局管理员） -->
       <button
@@ -63,7 +63,7 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
         title="发布公告"
         @click="emit('toggleAnnounce')"
       >
-        <SvgIcon name="announce" :size="17" />
+        <SvgIcon name="announce" :size="20" />
       </button>
     </div>
   </div>

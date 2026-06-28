@@ -370,7 +370,7 @@ onUnmounted(() => {
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerImageUpload"
     >
-      <SvgIcon name="image_arrow_up" :size="18" />
+      <SvgIcon name="image_arrow_up" :size="20" />
     </button>
 
     <!-- 文件按钮 -->
@@ -381,7 +381,7 @@ onUnmounted(() => {
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerFileUpload"
     >
-      <SvgIcon name="upload_file" :size="18" />
+      <SvgIcon name="upload_file" :size="20" />
     </button>
 
     <!-- 隐藏的 file input -->

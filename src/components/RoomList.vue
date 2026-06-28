@@ -90,7 +90,7 @@ function selectRoom(roomId: string, roomName: string) {
           class="btn-action"
           @click="showCreatePanel = true"
         >
-          <SvgIcon name="add" :size="14" /> 创建房间
+          <SvgIcon name="add" :size="18" inline /> 创建房间
         </button>
         <div v-else class="create-panel">
           <input
@@ -114,7 +114,7 @@ function selectRoom(roomId: string, roomName: string) {
           class="btn-action btn-refresh"
           @click="showJoinPanel = true"
         >
-          <SvgIcon name="group_add" :size="14" /> 加入房间
+          <SvgIcon name="group_add" :size="18" inline /> 加入房间
         </button>
         <div v-else class="create-panel">
           <input

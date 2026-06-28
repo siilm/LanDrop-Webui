@@ -57,7 +57,7 @@ watch(() => props.visible, (v) => {
   <Teleport to="body">
     <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
       <div class="modal-dialog">
-        <h3><SvgIcon name="group_add" :size="18" /> 邀请用户</h3>
+        <h3><SvgIcon name="group_add" :size="22" inline /> 邀请用户</h3>
         <p class="modal-hint">输入要邀请的用户 ID（多个用逗号分隔）</p>
         <input
           v-model="inviteUserId"

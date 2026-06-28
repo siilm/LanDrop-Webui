@@ -56,7 +56,7 @@ watch(
 <template>
   <div v-if="visible" class="announce-panel">
     <div class="panel-header">
-      <span><SvgIcon name="announce" :size="16" /> 发布公告</span>
+      <span><SvgIcon name="announce" :size="20" inline /> 发布公告</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
     <textarea

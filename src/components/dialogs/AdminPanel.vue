@@ -101,7 +101,7 @@ onMounted(() => {
 <template>
   <div class="admin-panel">
     <div class="panel-header">
-      <span><SvgIcon name="settings" :size="16" /> 系统管理</span>
+      <span><SvgIcon name="settings" :size="20" inline /> 系统管理</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
 

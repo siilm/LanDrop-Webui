@@ -158,7 +158,7 @@ onUnmounted(() => {
 
       <!-- 我收到的邀请 -->
       <div class="section">
-        <div class="section-title"><SvgIcon name="group_add" :size="12" /> 我收到的邀请</div>
+        <div class="section-title"><SvgIcon name="group_add" :size="16" inline /> 我收到的邀请</div>
         <div v-if="myInvites.length === 0" class="empty-hint">暂无邀请</div>
         <div
           v-for="inv in myInvites"
@@ -196,7 +196,7 @@ onUnmounted(() => {
 
       <!-- 我发出的加入申请 -->
       <div class="section">
-        <div class="section-title"><SvgIcon name="search" :size="12" /> 我发出的加入申请</div>
+        <div class="section-title"><SvgIcon name="search" :size="16" inline /> 我发出的加入申请</div>
         <div v-if="myJoinRequests.length === 0" class="empty-hint">暂无申请</div>
         <div
           v-for="req in myJoinRequests"

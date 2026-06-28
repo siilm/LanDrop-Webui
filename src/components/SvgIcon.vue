@@ -5,6 +5,8 @@ import { icons } from '@/assets/icons'
 const props = defineProps<{
   name: string
   size?: number | string
+  /** 与文字同行时设为 true，自动对齐基线 */
+  inline?: boolean
 }>()
 
 const svg = computed(() => icons[props.name] || '')
@@ -18,6 +20,7 @@ const sizePx = computed(() => {
   <span
     v-if="svg"
     class="svg-icon"
+    :class="{ 'svg-icon--inline': inline }"
     :style="{ width: sizePx, height: sizePx }"
     v-html="svg"
   />
@@ -31,6 +34,14 @@ const sizePx = computed(() => {
   color: inherit;
   flex-shrink: 0;
   line-height: 1;
+}
+
+/* 与文字同行时下沉对齐基线（补偿 SVG 边框带来的上浮） */
+.svg-icon--inline {
+  vertical-align: middle;
+  position: relative;
+  top: 2px;
+  margin-right: 3px;
 }
 
 .svg-icon :deep(svg) {

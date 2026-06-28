@@ -26,7 +26,7 @@ watch(
   <Teleport to="body">
     <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
       <div class="modal-dialog">
-        <h3><SvgIcon name="edit" :size="18" /> 编辑消息</h3>
+        <h3><SvgIcon name="edit" :size="22" inline /> 编辑消息</h3>
         <textarea
           v-model="editContent"
           class="modal-input edit-textarea"

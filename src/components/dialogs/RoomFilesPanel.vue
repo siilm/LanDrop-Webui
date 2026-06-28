@@ -73,7 +73,7 @@ watch(
 <template>
   <div v-if="visible" class="room-files-panel">
     <div class="panel-header">
-      <span><SvgIcon name="download" :size="16" /> 房间文件</span>
+      <span><SvgIcon name="common_files" :size="18" inline /> 房间文件</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
 

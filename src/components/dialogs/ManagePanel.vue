@@ -340,7 +340,7 @@ onMounted(() => {
 <template>
   <div v-if="visible" class="manage-panel">
     <div class="panel-header">
-      <span><SvgIcon name="settings" :size="16" /> 房间管理</span>
+      <span><SvgIcon name="settings" :size="20" inline /> 房间管理</span>
       <div class="panel-header-actions">
         <button
           v-if="isCreator && chatStore.currentRoomId !== 'PUBLIC'"
@@ -371,14 +371,14 @@ onMounted(() => {
             @click="handleApproveJoin(req.id)"
             title="通过"
           >
-            <SvgIcon name="select_check_box" :size="14" /> 通过
+            <SvgIcon name="select_check_box" :size="16" inline /> 通过
           </button>
           <button
             class="btn-sm-reject"
             @click="handleRejectJoin(req.id)"
             title="拒绝"
           >
-            <SvgIcon name="block" :size="14" /> 拒绝
+            <SvgIcon name="block" :size="16" inline /> 拒绝
           </button>
         </div>
       </div>
@@ -402,14 +402,14 @@ onMounted(() => {
             @click="handleApproveInvite(inv.id)"
             title="同意"
           >
-            <SvgIcon name="select_check_box" :size="14" /> 同意
+            <SvgIcon name="select_check_box" :size="16" inline /> 同意
           </button>
           <button
             class="btn-sm-reject"
             @click="handleRejectInvite(inv.id)"
             title="拒绝"
           >
-            <SvgIcon name="block" :size="14" /> 拒绝
+            <SvgIcon name="block" :size="16" inline /> 拒绝
           </button>
         </div>
       </div>
@@ -454,7 +454,7 @@ onMounted(() => {
               @click="handleStartEditDisplayName(m)"
               title="设置头衔"
             >
-              🏷️
+              <SvgIcon name="nickname_title" :size="16" />
             </button>
             <!-- 踢出（管理员可踢成员） -->
             <button
@@ -463,7 +463,7 @@ onMounted(() => {
               @click="handleKick(m.user_id)"
               title="踢出"
             >
-              🚫
+              <SvgIcon name="person_remove" :size="16" />
             </button>
             <!-- 禁言/解除 -->
             <button
@@ -473,7 +473,8 @@ onMounted(() => {
               @click="handleMute(m.user_id, !m.muted)"
               :title="m.muted ? '解除禁言' : '禁言'"
             >
-              {{ m.muted ? '🔊' : '🔇' }}
+              <SvgIcon v-if="m.muted" name="toggle_on" :size="16" />
+              <SvgIcon v-else name="mute" :size="16" />
             </button>
             <!-- 晋升（仅创建者） -->
             <button
@@ -482,7 +483,7 @@ onMounted(() => {
               @click="handlePromote(m.user_id)"
               title="晋升为管理员"
             >
-              ⬆️
+              <SvgIcon name="arrow_circle_up" :size="16" />
             </button>
             <!-- 降级（仅创建者） -->
             <button
@@ -491,7 +492,7 @@ onMounted(() => {
               @click="handleDemote(m.user_id)"
               title="降级为成员"
             >
-              ⬇️
+              <SvgIcon name="download" :size="16" />
             </button>
           </div>
         </template>

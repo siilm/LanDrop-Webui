@@ -117,7 +117,7 @@ function handleLeaveCurrentRoom() {
     <!-- 用户信息 -->
     <div class="sidebar-header">
       <div class="brand-row">
-        <span class="brand-logo"><SvgIcon name="chat_bubble_off" :size="18" /></span>
+        <span class="brand-logo">💬</span>
         <h2>LanDrop</h2>
         <button
           class="theme-toggle-btn"
@@ -153,7 +153,7 @@ function handleLeaveCurrentRoom() {
           </div>
           <div class="user-actions">
             <button class="btn-icon" title="设置" @click="emit('openSettings')">
-              <SvgIcon name="self_settings" :size="16" />
+              <SvgIcon name="self_settings" :size="18" />
             </button>
           </div>
         </div>
@@ -188,14 +188,14 @@ function handleLeaveCurrentRoom() {
     <!-- 侧边栏操作 -->
     <div class="sidebar-actions">
       <button class="btn-action" @click="emit('refreshRooms')">
-        <SvgIcon name="refresh" :size="14" /> 刷新房间列表
+        <SvgIcon name="refresh" :size="19" inline /> 刷新房间列表
       </button>
       <button
         v-if="authStore.globalRole === 'owner' || authStore.globalRole === 'public_admin'"
         class="btn-action btn-admin"
         @click="emit('openAdmin')"
       >
-        <SvgIcon name="settings" :size="14" /> 系统管理
+        <SvgIcon name="settings" :size="19" inline /> 系统管理
       </button>
     </div>
 
@@ -207,7 +207,7 @@ function handleLeaveCurrentRoom() {
           class="btn-action btn-my"
           @click="handleToggleMyRequests"
         >
-          <SvgIcon name="search" :size="14" /> 我的申请 / 邀请
+          <SvgIcon name="search" :size="19" inline /> 我的申请 / 邀请
         </button>
         <MyRequestsPanel
           v-if="showMyRequests"
@@ -220,7 +220,7 @@ function handleLeaveCurrentRoom() {
         @click="handleLeaveCurrentRoom"
         :disabled="!chatStore.currentRoomId"
       >
-        <SvgIcon name="leaving_room" :size="14" /> 离开房间
+        <SvgIcon name="leaving_room" :size="19" inline /> 离开房间
       </button>
     </div>
 
