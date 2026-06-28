@@ -36,11 +36,9 @@ const sizePx = computed(() => {
   line-height: 1;
 }
 
-/* 与文字同行时下沉对齐基线（补偿 SVG 边框带来的上浮） */
+/* 与文字同行时微调对齐 */
 .svg-icon--inline {
   vertical-align: middle;
-  position: relative;
-  top: 2px;
   margin-right: 3px;
 }
 
