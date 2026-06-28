@@ -44,6 +44,9 @@ desktop.ini
 # ---- 测试覆盖率 ----
 coverage/
 
+# ---- SVG 源素材（不提交） ----
+raw/
+
 # ---- 其他临时文件 ----
 *.tmp
 CLAUDE.md
