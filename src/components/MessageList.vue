@@ -200,6 +200,8 @@ watch(
   () => {
     if (shouldAutoScroll.value) {
       scrollToBottom()
+    } else if (chatStore.loadingHistory) {
+      // 正在加载历史/首屏：不计新消息数（避免首次进入 lastPosition 模式时误显示「1 条新消息」）
     } else {
       newMessageCount.value++
     }
@@ -343,7 +345,7 @@ defineExpose({ jumpToMessage: scrollToMessage })
 </script>
 
 <template>
-  <div class="messages-wrapper">
+  <div class="messages-wrapper" :data-scroll-behavior="chatStore.scrollBehavior">
     <div
       ref="messagesContainer"
       class="messages-area"
@@ -439,6 +441,11 @@ defineExpose({ jumpToMessage: scrollToMessage })
 /* 消息密度 */
 .messages-area[data-density="compact"] { gap: 6px; padding: 14px 20px; }
 .messages-area[data-density="comfortable"] { gap: 22px; padding: 28px 32px; }
+
+/* 从离开位置继续：去掉气泡入场动画 */
+.messages-wrapper[data-scroll-behavior="lastPosition"] :deep(.message-item) {
+  animation: none !important;
+}
 
 .load-more-hint {
   text-align: center;

@@ -257,11 +257,9 @@ async function refreshRooms() {
 
 async function handleCreateRoom(name: string) {
   try {
-    const res = await ws.createRoom ? ws.createRoom(name) : null
-    if (!res) {
-      // WS 发送不返回结果，需等待 WS 推送 room_created
-      console.log('[ChatPage] 创建房间请求已发送')
-    }
+    ws.createRoom(name)
+    // WS 发送不返回结果，取消失败的 await（布尔值无意义）；延迟刷新作为兜底
+    setTimeout(() => refreshRooms(), 800)
   } catch (e) {
     console.warn('[ChatPage] 创建房间失败:', e)
   }
@@ -446,10 +444,15 @@ async function handleCancelUpload(uploadId: string) {
 // ======================== 右键菜单 ========================
 
 function handleContextMenu(event: MouseEvent, msg: ClientMessage) {
+  // 预估菜单尺寸（约132px宽，每项约36px高），clamp 到视口内
+  const MENU_W = 140
+  const MENU_H = 180
+  const x = Math.min(event.clientX, window.innerWidth - MENU_W - 8)
+  const y = Math.min(event.clientY, window.innerHeight - MENU_H - 8)
   contextMenu.value = {
     visible: true,
-    x: event.clientX,
-    y: event.clientY,
+    x: Math.max(8, x),
+    y: Math.max(8, y),
     message: msg,
   }
 }
