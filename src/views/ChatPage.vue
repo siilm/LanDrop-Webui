@@ -13,6 +13,7 @@ import {
   uploadFileChunk,
   uploadFileComplete,
   uploadFileStatus,
+  uploadFileCancel,
   computeFileSha256,
   dissolveRoom,
   downloadFileViaJwt,
@@ -388,6 +389,7 @@ async function handleSendFile(files: FileList | File[]) {
 
   const fileList = Array.from(files)
   for (const file of fileList) {
+    let uploadId: string | undefined
     try {
       const sha256 = await computeFileSha256(file)
       const initRes = await uploadFileInit(chatStore.currentRoomId, file.name, file.size, sha256)
@@ -395,8 +397,8 @@ async function handleSendFile(files: FileList | File[]) {
       // 秒传命中：服务端已创建完整文件消息，无需额外操作
       if (initRes.status === 'instant') continue
 
-      // 初始化进度追踪
-      chatStore.setUpload(initRes.message_id, file.name, file.size)
+      uploadId = initRes.upload_id!
+      chatStore.setUploadProgress(uploadId, 0, file.size, file.name)
 
       // 需上传：分片发送
       const CHUNK = 512 * 1024 // 512 KB per chunk
@@ -405,30 +407,38 @@ async function handleSendFile(files: FileList | File[]) {
         const end = Math.min(offset + CHUNK, file.size)
         const chunk = file.slice(offset, end)
         try {
-          const res = await uploadFileChunk(initRes.upload_id!, chunk, offset, file.size)
+          const res = await uploadFileChunk(uploadId, chunk, offset, file.size)
           offset = Number(res.received)
-          chatStore.updateUploadProgress(initRes.message_id, offset)
+          chatStore.setUploadProgress(uploadId, offset, file.size, file.name)
         } catch (e: any) {
           if (e?.message?.includes('offset_mismatch')) {
-            // 查询服务端期望的偏移并重对齐
-            const status = await uploadFileStatus(initRes.upload_id!)
+            const status = await uploadFileStatus(uploadId)
             offset = Number(status.received)
-            chatStore.updateUploadProgress(initRes.message_id, offset)
           } else {
             throw e
           }
         }
       }
       // 完成上传（服务端校验 SHA-256，占位消息自动转为正式文件消息）
-      await uploadFileComplete(initRes.upload_id!)
-      // 标记上传结束：等待服务端广播的正式消息帧替换占位
-      const u = chatStore.uploads[initRes.message_id]
-      if (u) u.active = false
-      setTimeout(() => chatStore.removeUpload(initRes.message_id), 5000)
+      await uploadFileComplete(uploadId)
+      chatStore.removeUploadProgress(uploadId)
     } catch (e) {
       console.warn('[ChatPage] 文件发送失败:', e)
-      alert('文件上传失败: ' + ((e as any)?.message || '未知错误'))
+      if (uploadId) chatStore.removeUploadProgress(uploadId)
+      if (!(e as any)?.message?.includes('aborted')) {
+        alert('文件上传失败: ' + ((e as any)?.message || '未知错误'))
+      }
     }
+  }
+}
+
+/** 取消正在上传的文件 (v3.0) */
+async function handleCancelUpload(uploadId: string) {
+  try {
+    await uploadFileCancel(uploadId)
+    chatStore.removeUploadProgress(uploadId)
+  } catch (e) {
+    console.warn('[ChatPage] 取消上传失败:', e)
   }
 }
 
@@ -491,14 +501,16 @@ function handleDeleteLocal() {
   closeContextMenu()
 }
 
-/** 取消上传 (v3.0)：通过 chat_recall 撤回占位消息即中断上传 */
-function handleCancelUpload() {
+/** 取消文件上传 — 查找对应 uploadId 并调 cancel */
+function handleCancelContextUpload() {
   const msg = contextMenu.value.message
-  if (!msg || !chatStore.currentRoomId) return
-  if (confirm('确定取消上传？已上传的部分将被丢弃。')) {
-    ws.recallMessage(chatStore.currentRoomId, msg.message_id)
-    chatStore.removeUpload(msg.message_id)
-  }
+  if (!msg) return
+  // 从 uploadProgress 中找到对应条目
+  const uploadId = Object.keys(chatStore.uploadProgress).find(
+    uid => chatStore.uploadProgress[uid].fileName === (msg.elements?.[0] as any)?.file_name
+  )
+  if (uploadId) handleCancelUpload(uploadId)
+  chatStore.removeMessageById(msg.message_id)
   closeContextMenu()
 }
 
@@ -506,15 +518,17 @@ const isOwnerOrAdmin = computed(() => {
   return authStore.globalRole === 'owner' || authStore.globalRole === 'public_admin'
 })
 
-const contextMsgIsUploading = computed(() => {
-  const msg = contextMenu.value.message
-  if (!msg) return false
-  return msg.status === 'uploading' || msg.elements?.some((e: any) => e.uploading === true)
-})
-
 const contextMsgIsSelf = computed(() => {
   const msg = contextMenu.value.message
   return msg ? msg.from === authStore.userId : false
+})
+
+/** 右键消息是否是上传中的文件占位 */
+const contextMsgIsUploading = computed(() => {
+  const msg = contextMenu.value.message
+  if (!msg) return false
+  if (msg.status === 'uploading') return true
+  return msg.elements?.some((el: any) => el.uploading === true) ?? false
 })
 
 /** 当前用户对上下文菜单消息是否有撤回权限 */
@@ -830,32 +844,46 @@ watch(
         class="context-menu"
         :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
       >
-        <!-- 上传中文件 — 仅取消上传 (v3.0) -->
-        <template v-if="contextMsgIsUploading && contextMsgIsSelf">
+        <template v-if="contextMsgIsUploading">
+          <!-- 上传中文件：仅显示取消上传 -->
           <div
             class="context-menu-item danger"
-            @click="handleCancelUpload"
+            @click="handleCancelContextUpload"
           >
-            ❌ 取消上传
+            ⏹ 取消上传
           </div>
         </template>
-        <!-- 正常消息 -->
         <template v-else>
-          <div class="context-menu-item" @click="handleReplyMessage">↩️ 回复</div>
+          <!-- 回复 — 所有消息可用 -->
+          <div
+            class="context-menu-item"
+            @click="handleReplyMessage"
+          >
+            ↩️ 回复
+          </div>
+          <!-- 编辑 — 仅自己的消息 -->
           <div
             v-if="contextMsgIsSelf"
             class="context-menu-item"
             @click="handleEditContextMenu"
-          >✏️ 编辑消息</div>
+          >
+            ✏️ 编辑消息
+          </div>
+          <!-- 撤回 — 有权限时显示（自己消息 或 角色 >= 发送者） -->
           <div
             v-if="canRecallContextMsg"
             class="context-menu-item danger"
             @click="handleRecallMessage"
-          >🗑️ 撤回</div>
+          >
+            🗑️ 撤回
+          </div>
+          <!-- 本地删除 — 始终可用 -->
           <div
             class="context-menu-item danger"
             @click="handleDeleteLocal"
-          >🗑️ 本地删除</div>
+          >
+            🗑️ 本地删除
+          </div>
         </template>
       </div>
     </Teleport>

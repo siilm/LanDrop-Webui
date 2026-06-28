@@ -24,10 +24,6 @@ export const useChatStore = defineStore('chat', () => {
   // ---- 加入申请 ----
   const joinRequests = reactive<JoinRequestRecord[]>([])
 
-  // ---- 文件上传进度 (v3.0) ----
-  /** messageId → { fileName, loaded, total, active } */
-  const uploads = reactive<Record<string, { fileName: string; loaded: number; total: number; active: boolean }>>({})
-
   // ---- @提及追踪 (v2.3) ----
   /** 存在未读 @提及的房间 ID 集合（用于侧栏 [有人@我] 标签） */
   const unreadMentionRoomIds = ref<Set<string>>(new Set())
@@ -257,16 +253,28 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function pushMessage(msg: ChatMessage) {
+    // 去重；若服务端发来的消息比本地已有更「完成」（如 uploading→sent），覆盖本地
     const idx = messages.findIndex((m) => m.message_id === msg.message_id)
     if (idx >= 0) {
-      // 上传占位 → 正式消息的更新（v3.0）：服务端 complete 后广播新帧，
-      // 替换原 uploading 状态的占位消息（元素、状态、file 等字段均已更新）
-      if ((messages[idx] as any).status === 'uploading' && (msg as any).status !== 'uploading') {
-        messages[idx] = { ...messages[idx], ...msg }
+      if (msg.status === 'sent' || (msg as any)._status == null) {
+        messages[idx] = { ...messages[idx], ...msg } as any
       }
       return
     }
     messages.push(msg)
+  }
+
+  // ---- 上传进度 (v3.0) ----
+  const uploadProgress = ref<Record<string, { sent: number; total: number; fileName: string }>>({})
+
+  function setUploadProgress(uploadId: string, sent: number, total: number, fileName: string) {
+    uploadProgress.value = { ...uploadProgress.value, [uploadId]: { sent, total, fileName } }
+  }
+
+  function removeUploadProgress(uploadId: string) {
+    const p = { ...uploadProgress.value }
+    delete p[uploadId]
+    uploadProgress.value = p
   }
 
   function prependMessages(list: ChatMessage[]) {
@@ -340,18 +348,6 @@ export const useChatStore = defineStore('chat', () => {
   function removeJoinRequest(requestId: string) {
     const idx = joinRequests.findIndex((r) => r.id === requestId)
     if (idx >= 0) joinRequests.splice(idx, 1)
-  }
-
-  // ---- 文件上传进度 (v3.0) ----
-  function setUpload(messageId: string, fileName: string, total: number) {
-    uploads[messageId] = { fileName, loaded: 0, total, active: true }
-  }
-  function updateUploadProgress(messageId: string, loaded: number) {
-    const u = uploads[messageId]
-    if (u) u.loaded = loaded
-  }
-  function removeUpload(messageId: string) {
-    delete uploads[messageId]
   }
 
   // ---- @提及追踪 (v2.3) ----
@@ -462,7 +458,6 @@ export const useChatStore = defineStore('chat', () => {
     loadingHistory,
     hasMoreHistory,
     joinRequests,
-    uploads,
     // 本地设置
     scrollBehavior,
     roomScrollPositions,
@@ -470,6 +465,10 @@ export const useChatStore = defineStore('chat', () => {
     setScrollBehavior,
     saveRoomScrollPosition,
     setMessageDensity,
+    // 上传进度
+    uploadProgress,
+    setUploadProgress,
+    removeUploadProgress,
     // @提及追踪
     unreadMentionRoomIds,
     unreadMentionMessages,
@@ -502,9 +501,6 @@ export const useChatStore = defineStore('chat', () => {
     // 加入申请
     setJoinRequests,
     removeJoinRequest,
-    setUpload,
-    updateUploadProgress,
-    removeUpload,
     // @提及追踪
     addUnreadMention,
     clearMentionBadge,
