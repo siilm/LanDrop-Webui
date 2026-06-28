@@ -40,30 +40,32 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
 
     <div v-if="chatStore.currentRoomId" class="header-actions">
       <!-- 文件 -->
-      <button class="btn-header-icon" title="房间文件" @click="emit('toggleFiles')">
+      <button class="btn-header-icon" @click="emit('toggleFiles')">
         <SvgIcon name="common_files" :size="20" />
+        <span class="btn-header-label">文件</span>
       </button>
       <!-- 管理（仅管理员/房间管理员/全局管理员） -->
       <button
         v-if="canManage"
         class="btn-header-icon"
-        title="管理"
         @click="emit('toggleManage')"
       >
         <SvgIcon name="settings" :size="20" />
+        <span class="btn-header-label">管理</span>
       </button>
       <!-- 邀请 -->
-      <button class="btn-header-icon" title="邀请用户" @click="emit('toggleInvite')">
+      <button class="btn-header-icon" @click="emit('toggleInvite')">
         <SvgIcon name="group_add" :size="20" />
+        <span class="btn-header-label">邀请</span>
       </button>
       <!-- 公告（仅管理员/房间管理员/全局管理员） -->
       <button
         v-if="canManage"
         class="btn-header-icon"
-        title="发布公告"
         @click="emit('toggleAnnounce')"
       >
         <SvgIcon name="announce" :size="20" />
+        <span class="btn-header-label">公告</span>
       </button>
     </div>
   </div>
@@ -111,12 +113,14 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 17px;
-  width: 36px;
-  height: 36px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  height: 52px;
+  padding: 4px 6px;
   border-radius: var(--radius-sm);
   line-height: 1;
   transition: background 0.18s ease, transform 0.2s var(--ease-bounce);
@@ -129,5 +133,13 @@ const canManage = computed(() => isAdminOrCreator.value || isPublicAdmin.value)
 
 .btn-header-icon:active {
   transform: translateY(0) scale(0.94);
+}
+
+.btn-header-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1.2;
 }
 </style>

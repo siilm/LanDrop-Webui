@@ -366,22 +366,22 @@ onUnmounted(() => {
     <button
       type="button"
       class="btn-icon-input"
-      title="发送图片"
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerImageUpload"
     >
       <SvgIcon name="image_arrow_up" :size="20" />
+      <span class="btn-icon-label">图片</span>
     </button>
 
     <!-- 文件按钮 -->
     <button
       type="button"
       class="btn-icon-input"
-      title="发送文件"
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerFileUpload"
     >
       <SvgIcon name="upload_file" :size="20" />
+      <span class="btn-icon-label">文件</span>
     </button>
 
     <!-- 隐藏的 file input -->
@@ -470,20 +470,29 @@ onUnmounted(() => {
 }
 
 .btn-icon-input {
-  width: 40px;
-  height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 44px;
+  height: 50px;
+  padding: 4px;
   background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 18px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  padding: 0;
   line-height: 1;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.2s var(--ease-bounce);
+}
+
+.btn-icon-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .btn-icon-input:hover:not(:disabled) {
