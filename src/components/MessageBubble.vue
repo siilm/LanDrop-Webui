@@ -4,7 +4,7 @@ import type { ClientMessage, MessageElement, ReplyElement } from '@/types/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { fileBlobCache } from '@/utils/BlobCache'
-import { getBaseUrl, fetchFileBlob, downloadFileViaJwt } from '@/composables/useApi'
+import { getBaseUrl, fetchFileBlob } from '@/composables/useApi'
 
 const props = defineProps<{
   message: ClientMessage
@@ -214,10 +214,7 @@ function handleContextMenu(e: MouseEvent) {
 }
 
 function handleFileDownload(el: MessageElement) {
-  const roomId = props.message.room_id || props.currentRoomId || ''
-  if ('file_id' in el && el.file_id) {
-    downloadFileViaJwt(el.file_id, 'file_name' in el ? el.file_name : undefined, roomId)
-  }
+  // 由父组件（ChatPage）统一处理下载，避免 emit 回调中重复下载
   emit('fileClick', el)
 }
 
