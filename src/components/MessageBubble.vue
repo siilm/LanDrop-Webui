@@ -237,6 +237,23 @@ function getMemberNameById(userId: string): string {
   return member?.username || member?.display_name || ''
 }
 
+/** 获取上传进度百分比 (v3.0) */
+function uploadPct(messageId: string): number {
+  const u = chatStore.uploads[messageId]
+  if (!u || !u.total || !u.active) return 0
+  return Math.min(100, Math.round((u.loaded / u.total) * 100))
+}
+
+/** 获取上传提示文本 */
+function uploadHint(messageId: string): string {
+  const u = chatStore.uploads[messageId]
+  if (!u) return '准备上传...'
+  if (!u.active) return '等待服务端确认...'
+  const pct = uploadPct(messageId)
+  if (pct >= 100) return '校验中...'
+  return `上传中 ${pct}%`
+}
+
 /** 跳转到回复引用的原消息 (v2.4) */
 function jumpToReplySource(messageId: string) {
   if (!messageId) return
@@ -328,11 +345,19 @@ function jumpToReplySource(messageId: string) {
 
           <!-- 文件 -->
           <div v-else-if="el.type === 'file'" class="file-wrapper">
-            <!-- 上传中占位消息 (v3.0) -->
+            <!-- 上传中 / 已完成过渡 (v3.0) -->
             <div v-if="(el as any).uploading || message.status === 'uploading'" class="file-uploading">
               <span class="file-uploading-icon">⏳</span>
-              <span class="file-uploading-name">{{ el.file_name }}</span>
-              <span class="file-uploading-hint">上传中...</span>
+              <div class="file-uploading-info">
+                <span class="file-uploading-name">{{ el.file_name }}</span>
+                <div class="file-progress-bar">
+                  <div
+                    class="file-progress-fill"
+                    :style="{ width: uploadPct(message.message_id) + '%' }"
+                  ></div>
+                </div>
+                <span class="file-uploading-hint">{{ uploadHint(message.message_id) }}</span>
+              </div>
             </div>
             <!-- 正常文件 -->
             <a
@@ -671,15 +696,24 @@ function jumpToReplySource(messageId: string) {
 
 .file-uploading {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  opacity: 0.65;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
 }
 
 .file-uploading-icon {
   font-size: 15px;
+  margin-top: 3px;
   animation: ld-spin 1.5s linear infinite;
+  flex-shrink: 0;
+}
+
+.file-uploading-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .file-uploading-name {
@@ -687,7 +721,37 @@ function jumpToReplySource(messageId: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
+  max-width: 240px;
+}
+
+.file-progress-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.file-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-light));
+  transition: width 0.35s var(--ease-out-expo);
+  position: relative;
+}
+
+/* 动画中的流光效果 */
+.file-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: ld-progress-shine 1.6s var(--ease-in-out) infinite;
+}
+
+@keyframes ld-progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .file-uploading-hint {

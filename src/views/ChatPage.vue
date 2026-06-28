@@ -395,21 +395,25 @@ async function handleSendFile(files: FileList | File[]) {
       // 秒传命中：服务端已创建完整文件消息，无需额外操作
       if (initRes.status === 'instant') continue
 
+      // 初始化进度追踪
+      chatStore.setUpload(initRes.message_id, file.name, file.size)
+
       // 需上传：分片发送
       const CHUNK = 512 * 1024 // 512 KB per chunk
       let offset = 0
       while (offset < file.size) {
         const end = Math.min(offset + CHUNK, file.size)
         const chunk = file.slice(offset, end)
-        // 冲突时自动重对齐
         try {
           const res = await uploadFileChunk(initRes.upload_id!, chunk, offset, file.size)
           offset = Number(res.received)
+          chatStore.updateUploadProgress(initRes.message_id, offset)
         } catch (e: any) {
           if (e?.message?.includes('offset_mismatch')) {
             // 查询服务端期望的偏移并重对齐
             const status = await uploadFileStatus(initRes.upload_id!)
             offset = Number(status.received)
+            chatStore.updateUploadProgress(initRes.message_id, offset)
           } else {
             throw e
           }
@@ -417,6 +421,10 @@ async function handleSendFile(files: FileList | File[]) {
       }
       // 完成上传（服务端校验 SHA-256，占位消息自动转为正式文件消息）
       await uploadFileComplete(initRes.upload_id!)
+      // 标记上传结束：等待服务端广播的正式消息帧替换占位
+      const u = chatStore.uploads[initRes.message_id]
+      if (u) u.active = false
+      setTimeout(() => chatStore.removeUpload(initRes.message_id), 5000)
     } catch (e) {
       console.warn('[ChatPage] 文件发送失败:', e)
       alert('文件上传失败: ' + ((e as any)?.message || '未知错误'))
@@ -483,8 +491,25 @@ function handleDeleteLocal() {
   closeContextMenu()
 }
 
+/** 取消上传 (v3.0)：通过 chat_recall 撤回占位消息即中断上传 */
+function handleCancelUpload() {
+  const msg = contextMenu.value.message
+  if (!msg || !chatStore.currentRoomId) return
+  if (confirm('确定取消上传？已上传的部分将被丢弃。')) {
+    ws.recallMessage(chatStore.currentRoomId, msg.message_id)
+    chatStore.removeUpload(msg.message_id)
+  }
+  closeContextMenu()
+}
+
 const isOwnerOrAdmin = computed(() => {
   return authStore.globalRole === 'owner' || authStore.globalRole === 'public_admin'
+})
+
+const contextMsgIsUploading = computed(() => {
+  const msg = contextMenu.value.message
+  if (!msg) return false
+  return msg.status === 'uploading' || msg.elements?.some((e: any) => e.uploading === true)
 })
 
 const contextMsgIsSelf = computed(() => {
@@ -805,36 +830,33 @@ watch(
         class="context-menu"
         :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
       >
-        <!-- 回复 — 所有消息可用 -->
-        <div
-          class="context-menu-item"
-          @click="handleReplyMessage"
-        >
-          ↩️ 回复
-        </div>
-        <!-- 编辑 — 仅自己的消息 -->
-        <div
-          v-if="contextMsgIsSelf"
-          class="context-menu-item"
-          @click="handleEditContextMenu"
-        >
-          ✏️ 编辑消息
-        </div>
-        <!-- 撤回 — 有权限时显示（自己消息 或 角色 >= 发送者） -->
-        <div
-          v-if="canRecallContextMsg"
-          class="context-menu-item danger"
-          @click="handleRecallMessage"
-        >
-          🗑️ 撤回
-        </div>
-        <!-- 本地删除 — 始终可用 -->
-        <div
-          class="context-menu-item danger"
-          @click="handleDeleteLocal"
-        >
-          🗑️ 本地删除
-        </div>
+        <!-- 上传中文件 — 仅取消上传 (v3.0) -->
+        <template v-if="contextMsgIsUploading && contextMsgIsSelf">
+          <div
+            class="context-menu-item danger"
+            @click="handleCancelUpload"
+          >
+            ❌ 取消上传
+          </div>
+        </template>
+        <!-- 正常消息 -->
+        <template v-else>
+          <div class="context-menu-item" @click="handleReplyMessage">↩️ 回复</div>
+          <div
+            v-if="contextMsgIsSelf"
+            class="context-menu-item"
+            @click="handleEditContextMenu"
+          >✏️ 编辑消息</div>
+          <div
+            v-if="canRecallContextMsg"
+            class="context-menu-item danger"
+            @click="handleRecallMessage"
+          >🗑️ 撤回</div>
+          <div
+            class="context-menu-item danger"
+            @click="handleDeleteLocal"
+          >🗑️ 本地删除</div>
+        </template>
       </div>
     </Teleport>
 
