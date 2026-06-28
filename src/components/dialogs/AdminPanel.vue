@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { fetchPublicAdmins, appointPublicAdmin, removePublicAdmin, adminRegister } from '@/composables/useApi'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const emit = defineEmits<{
   close: []
@@ -100,7 +101,7 @@ onMounted(() => {
 <template>
   <div class="admin-panel">
     <div class="panel-header">
-      <span>⚙️ 系统管理</span>
+      <span><SvgIcon name="sync" :size="16" /> 系统管理</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
 

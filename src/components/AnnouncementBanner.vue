@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const emit = defineEmits<{
   jump: [messageId: string]
@@ -94,7 +95,7 @@ function handleJump() {
         :title="`展开公告（${total} 条）`"
         @click="toggleCollapsed"
       >
-        <span class="announce-reopen-icon">📢</span>
+        <span class="announce-reopen-icon"><SvgIcon name="announce" :size="16" /></span>
         <span class="announce-reopen-count">{{ total }}</span>
       </button>
 
@@ -105,7 +106,7 @@ function handleJump() {
         class="announce-banner"
         @wheel="onWheel"
       >
-        <span class="announce-banner-icon">📢</span>
+        <span class="announce-banner-icon"><SvgIcon name="announce" :size="16" /></span>
 
         <div class="announce-banner-main">
           <div class="announce-banner-meta">

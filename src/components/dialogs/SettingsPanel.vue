@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { avatarBlobCache, fileBlobCache } from '@/utils/BlobCache'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 defineProps<{ visible: boolean }>()
 
@@ -76,7 +77,7 @@ function handleClearAllData() {
         <div class="settings-panel">
           <!-- 头部 -->
           <div class="panel-header">
-            <span>⚙️ 设置</span>
+            <span><SvgIcon name="sync" :size="18" /> 设置</span>
             <button class="btn-close" @click="emit('close')" title="关闭">×</button>
           </div>
 
@@ -105,8 +106,8 @@ function handleClearAllData() {
                 </div>
               </div>
               <div class="info-actions">
-                <button class="btn-sm" @click="emit('rename')">✏️ 更改用户名</button>
-                <button class="btn-sm" @click="emit('uploadAvatar')">🖼️ 更改头像</button>
+                <button class="btn-sm" @click="emit('rename')"><SvgIcon name="edit" :size="14" /> 更改用户名</button>
+                <button class="btn-sm" @click="emit('uploadAvatar')"><SvgIcon name="image_arrow_up" :size="14" /> 更改头像</button>
               </div>
             </section>
 
@@ -143,7 +144,7 @@ function handleClearAllData() {
               <div class="section-title">💾 数据</div>
               <div class="info-actions">
                 <button class="btn-sm btn-sm--danger" @click="handleClearCache" :disabled="clearing">
-                  {{ clearing ? '清除中...' : '🗑️ 清除本地缓存' }}
+                  {{ clearing ? '清除中...' : '<SvgIcon name="delete" :size="14" /> 清除本地缓存' }}
                 </button>
                 <button class="btn-sm btn-sm--danger" @click="handleClearAllData">
                   ⚠️ 清除所有本地数据

@@ -20,6 +20,7 @@ import {
 import type { RoomMember, InviteRecord } from '@/types/chat'
 import { RoleValue } from '@/types/chat'
 import { onWsEvent, useWebSocket } from '@/composables/useWebSocket'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const emit = defineEmits<{
   dissolve: []
@@ -339,7 +340,7 @@ onMounted(() => {
 <template>
   <div v-if="visible" class="manage-panel">
     <div class="panel-header">
-      <span>⚙️ 房间管理</span>
+      <span><SvgIcon name="sync" :size="16" /> 房间管理</span>
       <div class="panel-header-actions">
         <button
           v-if="isCreator && chatStore.currentRoomId !== 'PUBLIC'"
@@ -370,14 +371,14 @@ onMounted(() => {
             @click="handleApproveJoin(req.id)"
             title="通过"
           >
-            ✅ 通过
+            <SvgIcon name="select_check_box" :size="14" /> 通过
           </button>
           <button
             class="btn-sm-reject"
             @click="handleRejectJoin(req.id)"
             title="拒绝"
           >
-            ❌ 拒绝
+            <SvgIcon name="block" :size="14" /> 拒绝
           </button>
         </div>
       </div>
@@ -401,14 +402,14 @@ onMounted(() => {
             @click="handleApproveInvite(inv.id)"
             title="同意"
           >
-            ✅ 同意
+            <SvgIcon name="select_check_box" :size="14" /> 同意
           </button>
           <button
             class="btn-sm-reject"
             @click="handleRejectInvite(inv.id)"
             title="拒绝"
           >
-            ❌ 拒绝
+            <SvgIcon name="block" :size="14" /> 拒绝
           </button>
         </div>
       </div>

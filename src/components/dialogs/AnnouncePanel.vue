@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { publishAnnounce } from '@/composables/useApi'
 import { useWebSocket } from '@/composables/useWebSocket'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -55,7 +56,7 @@ watch(
 <template>
   <div v-if="visible" class="announce-panel">
     <div class="panel-header">
-      <span>📢 发布公告</span>
+      <span><SvgIcon name="announce" :size="16" /> 发布公告</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
     <textarea

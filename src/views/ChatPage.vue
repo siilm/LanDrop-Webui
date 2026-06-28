@@ -48,6 +48,7 @@ import ManagePanel from '@/components/dialogs/ManagePanel.vue'
 import RoomFilesPanel from '@/components/dialogs/RoomFilesPanel.vue'
 import AnnouncePanel from '@/components/dialogs/AnnouncePanel.vue'
 import SettingsPanel from '@/components/dialogs/SettingsPanel.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import RenameDialog from '@/components/dialogs/RenameDialog.vue'
 
 const router = useRouter()
@@ -850,7 +851,7 @@ watch(
             class="context-menu-item danger"
             @click="handleCancelContextUpload"
           >
-            ⏹ 取消上传
+            <SvgIcon name="block" :size="14" /> 取消上传
           </div>
         </template>
         <template v-else>
@@ -859,7 +860,7 @@ watch(
             class="context-menu-item"
             @click="handleReplyMessage"
           >
-            ↩️ 回复
+            <SvgIcon name="reply" :size="14" /> 回复
           </div>
           <!-- 编辑 — 仅自己的消息 -->
           <div
@@ -867,7 +868,7 @@ watch(
             class="context-menu-item"
             @click="handleEditContextMenu"
           >
-            ✏️ 编辑消息
+            <SvgIcon name="edit" :size="14" /> 编辑消息
           </div>
           <!-- 撤回 — 有权限时显示（自己消息 或 角色 >= 发送者） -->
           <div
@@ -875,14 +876,14 @@ watch(
             class="context-menu-item danger"
             @click="handleRecallMessage"
           >
-            🗑️ 撤回
+            <SvgIcon name="delete" :size="14" /> 撤回
           </div>
           <!-- 本地删除 — 始终可用 -->
           <div
             class="context-menu-item danger"
             @click="handleDeleteLocal"
           >
-            🗑️ 本地删除
+            <SvgIcon name="local_delete" :size="14" /> 本地删除
           </div>
         </template>
       </div>

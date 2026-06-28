@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -47,7 +48,6 @@ function handleInvite() {
 }
 
 // 弹窗关闭时清除错误
-import { watch } from 'vue'
 watch(() => props.visible, (v) => {
   if (!v) validationError.value = ''
 })
@@ -57,7 +57,7 @@ watch(() => props.visible, (v) => {
   <Teleport to="body">
     <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
       <div class="modal-dialog">
-        <h3>✉️ 邀请用户</h3>
+        <h3><SvgIcon name="group_add" :size="18" /> 邀请用户</h3>
         <p class="modal-hint">输入要邀请的用户 ID（多个用逗号分隔）</p>
         <input
           v-model="inviteUserId"

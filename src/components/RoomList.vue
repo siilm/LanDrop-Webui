@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const emit = defineEmits<{
   createRoom: [name: string]
@@ -89,7 +90,7 @@ function selectRoom(roomId: string, roomName: string) {
           class="btn-action"
           @click="showCreatePanel = true"
         >
-          ➕ 创建房间
+          <SvgIcon name="add" :size="14" /> 创建房间
         </button>
         <div v-else class="create-panel">
           <input
@@ -113,7 +114,7 @@ function selectRoom(roomId: string, roomName: string) {
           class="btn-action btn-refresh"
           @click="showJoinPanel = true"
         >
-          🔗 加入房间
+          <SvgIcon name="group_add" :size="14" /> 加入房间
         </button>
         <div v-else class="create-panel">
           <input

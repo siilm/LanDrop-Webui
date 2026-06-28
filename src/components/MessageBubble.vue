@@ -140,6 +140,7 @@ async function loadAvatarBlob(userId: string) {
 
 // ===== 头像 blob 缓存 =====
 import { avatarBlobCache } from '@/utils/BlobCache'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const formattedTime = computed(() => {
   const d = new Date(props.message.timestamp || Date.now())
@@ -150,11 +151,11 @@ const formattedTime = computed(() => {
 const statusIcon = computed(() => {
   switch (props.message._status) {
     case 'sending':
-      return '⏳'
+      return '' // ⏳ (spinner shown via CSS)
     case 'failed':
-      return '❌'
+      return '' // ❌
     case 'sent':
-      return '✓'
+      return '' // ✓
     default:
       return ''
   }
@@ -273,7 +274,7 @@ function jumpToReplySource(messageId: string) {
   >
     <div class="announce-card">
       <div class="announce-card-head">
-        <span class="announce-card-icon">📢</span>
+        <span class="announce-card-icon"><SvgIcon name="announce" :size="18" /></span>
         <span class="announce-card-label">公告</span>
         <span class="announce-card-from">{{ senderDisplayName }}</span>
         <span class="announce-card-time">{{ formattedTime }}</span>
@@ -417,9 +418,9 @@ function jumpToReplySource(messageId: string) {
     <!-- 底部信息 -->
     <div class="message-footer">
       <span class="message-time">{{ formattedTime }}</span>
-      <span v-if="isSelf && statusIcon" class="msg-status" :class="message._status">
-        {{ statusIcon }}
-      </span>
+      <span v-if="isSelf && message._status === 'sending'" class="msg-status sending"><span class="msg-spinner"></span></span>
+      <SvgIcon v-else-if="isSelf && message._status === 'sent'" name="select_check_box" :size="12" class="msg-status sent" />
+      <SvgIcon v-else-if="isSelf && message._status === 'failed'" name="dangerous" :size="12" class="msg-status failed" />
     </div>
   </div>
 </template>
@@ -620,7 +621,18 @@ function jumpToReplySource(messageId: string) {
 }
 
 .msg-status.sending {
-  animation: ld-pulse 1s var(--ease-in-out) infinite;
+  display: inline-flex;
+  align-items: center;
+}
+
+.msg-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-muted);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ld-spin 0.7s linear infinite;
 }
 
 .msg-status.sent {

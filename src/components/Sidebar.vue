@@ -7,6 +7,7 @@ import { avatarBlobCache, fileBlobCache } from '@/utils/BlobCache'
 import { getBaseUrl } from '@/composables/useApi'
 import { useTheme } from '@/composables/useTheme'
 import { onWsEvent } from '@/composables/useWebSocket'
+import SvgIcon from './SvgIcon.vue'
 import RoomList from './RoomList.vue'
 import MyRequestsPanel from './dialogs/MyRequestsPanel.vue'
 
@@ -116,7 +117,7 @@ function handleLeaveCurrentRoom() {
     <!-- 用户信息 -->
     <div class="sidebar-header">
       <div class="brand-row">
-        <span class="brand-logo">💬</span>
+        <span class="brand-logo"><SvgIcon name="chat_bubble_off" :size="18" /></span>
         <h2>LanDrop</h2>
         <button
           class="theme-toggle-btn"
@@ -187,14 +188,14 @@ function handleLeaveCurrentRoom() {
     <!-- 侧边栏操作 -->
     <div class="sidebar-actions">
       <button class="btn-action" @click="emit('refreshRooms')">
-        🔄 刷新房间列表
+        <SvgIcon name="refresh" :size="14" /> 刷新房间列表
       </button>
       <button
         v-if="authStore.globalRole === 'owner' || authStore.globalRole === 'public_admin'"
         class="btn-action btn-admin"
         @click="emit('openAdmin')"
       >
-        ⚙️ 系统管理
+        <SvgIcon name="sync" :size="14" /> 系统管理
       </button>
     </div>
 
@@ -206,7 +207,7 @@ function handleLeaveCurrentRoom() {
           class="btn-action btn-my"
           @click="handleToggleMyRequests"
         >
-          📋 我的申请 / 邀请
+          <SvgIcon name="search" :size="14" /> 我的申请 / 邀请
         </button>
         <MyRequestsPanel
           v-if="showMyRequests"
@@ -219,7 +220,7 @@ function handleLeaveCurrentRoom() {
         @click="handleLeaveCurrentRoom"
         :disabled="!chatStore.currentRoomId"
       >
-        🚪 离开房间
+        <SvgIcon name="leaving_room" :size="14" /> 离开房间
       </button>
     </div>
 

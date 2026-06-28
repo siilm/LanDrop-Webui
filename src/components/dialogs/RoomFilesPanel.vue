@@ -4,6 +4,7 @@ import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { fetchRoomFiles, deleteRoomFile, downloadFileViaJwt } from '@/composables/useApi'
 import type { RoomFileItem } from '@/types/chat'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -72,7 +73,7 @@ watch(
 <template>
   <div v-if="visible" class="room-files-panel">
     <div class="panel-header">
-      <span>📁 房间文件</span>
+      <span><SvgIcon name="download" :size="16" /> 房间文件</span>
       <button class="btn-close" @click="emit('close')">✕</button>
     </div>
 

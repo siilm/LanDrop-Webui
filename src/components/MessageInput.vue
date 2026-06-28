@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getBaseUrl } from '@/composables/useApi'
 import { avatarBlobCache } from '@/utils/BlobCache'
 import type { RoomMember, ClientMessage } from '@/types/chat'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const props = defineProps<{
   replyTarget?: { messageId: string; preview: string } | null
@@ -369,7 +370,7 @@ onUnmounted(() => {
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerImageUpload"
     >
-      🖼️
+      <SvgIcon name="image_arrow_up" :size="18" />
     </button>
 
     <!-- 文件按钮 -->
@@ -380,7 +381,7 @@ onUnmounted(() => {
       :disabled="!chatStore.currentRoomId || isMuted"
       @click="triggerFileUpload"
     >
-      📎
+      <SvgIcon name="upload_file" :size="18" />
     </button>
 
     <!-- 隐藏的 file input -->

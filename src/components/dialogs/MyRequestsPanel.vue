@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { fetchInvitesToMe, fetchMyJoinRequests } from '@/composables/useApi'
 import { useWebSocket, onWsEvent } from '@/composables/useWebSocket'
 import type { InviteRecord, JoinRequestRecord } from '@/types/chat'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const emit = defineEmits<{
   close: []
@@ -157,7 +158,7 @@ onUnmounted(() => {
 
       <!-- 我收到的邀请 -->
       <div class="section">
-        <div class="section-title">📩 我收到的邀请</div>
+        <div class="section-title"><SvgIcon name="group_add" :size="12" /> 我收到的邀请</div>
         <div v-if="myInvites.length === 0" class="empty-hint">暂无邀请</div>
         <div
           v-for="inv in myInvites"
@@ -195,7 +196,7 @@ onUnmounted(() => {
 
       <!-- 我发出的加入申请 -->
       <div class="section">
-        <div class="section-title">📋 我发出的加入申请</div>
+        <div class="section-title"><SvgIcon name="search" :size="12" /> 我发出的加入申请</div>
         <div v-if="myJoinRequests.length === 0" class="empty-hint">暂无申请</div>
         <div
           v-for="req in myJoinRequests"
